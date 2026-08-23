@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" role="img" aria-labelledby="title">
+    <title id="title">ACSoft</title>
+
+    <text x="0" y="58" font-family="Inter, Arial, sans-serif" font-size="58" font-weight="800" letter-spacing="-3">
+        <tspan fill="#2497E3">AC</tspan>
+        <tspan fill="#0F2744">Soft</tspan>
+    </text>
+</svg>
