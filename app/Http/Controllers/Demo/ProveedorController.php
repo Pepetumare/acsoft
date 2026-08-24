@@ -3,63 +3,120 @@
 namespace App\Http\Controllers\Demo;
 
 use App\Http\Controllers\Controller;
+use App\Models\DemoProveedor;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class ProveedorController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(): View
     {
-        //
+        $proveedores = DemoProveedor::where(
+            'demo_session_id',
+            session('demo_session_id')
+        )
+        ->latest()
+        ->get();
+
+        return view(
+            'demo.proveedores.index',
+            compact('proveedores')
+        );
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+
+    public function create(): View
     {
-        //
+        return view('demo.proveedores.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+
+    public function store(Request $request): RedirectResponse
     {
-        //
+        $validated = $request->validate([
+            'nombre' => [
+                'required',
+                'string',
+                'max:150',
+            ],
+        ]);
+
+        DemoProveedor::create([
+            'demo_session_id' => session('demo_session_id'),
+            'nombre' => $validated['nombre'],
+        ]);
+
+        return redirect()
+            ->route('demo.proveedores.index')
+            ->with(
+                'success',
+                'Proveedor registrado correctamente.'
+            );
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+
+    public function edit(DemoProveedor $proveedor): View
     {
-        //
+        $this->ensureBelongsToCurrentDemo($proveedor);
+
+        return view('demo.proveedores.edit', [
+            'proveedor' => $proveedor,
+        ]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
+
+    public function update(
+        Request $request,
+        DemoProveedor $proveedor
+    ): RedirectResponse {
+
+        $this->ensureBelongsToCurrentDemo($proveedor);
+
+        $validated = $request->validate([
+            'nombre' => [
+                'required',
+                'string',
+                'max:150',
+            ],
+        ]);
+
+        $proveedor->update($validated);
+
+        return redirect()
+            ->route('demo.proveedores.index')
+            ->with(
+                'success',
+                'Proveedor actualizado correctamente.'
+            );
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
+
+    public function destroy(
+        DemoProveedor $proveedor
+    ): RedirectResponse {
+
+        $this->ensureBelongsToCurrentDemo($proveedor);
+
+        $proveedor->delete();
+
+        return redirect()
+            ->route('demo.proveedores.index')
+            ->with(
+                'success',
+                'Proveedor eliminado correctamente.'
+            );
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+
+    private function ensureBelongsToCurrentDemo(
+        DemoProveedor $proveedor
+    ): void {
+
+        abort_unless(
+            $proveedor->demo_session_id
+                === session('demo_session_id'),
+            404
+        );
     }
 }

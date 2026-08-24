@@ -4676,3 +4676,419 @@ select:focus-visible {
     }
 
 }
+
+/* ========================================
+   DEMO CRUD
+======================================== */
+
+.demo-content-card {
+    overflow: hidden;
+
+    background: white;
+
+    border: 1px solid var(--acsoft-border);
+
+    border-radius: 16px;
+
+    box-shadow:
+        0 14px 40px rgba(15, 39, 68, .05);
+}
+
+
+/* ========================================
+   TABLA
+======================================== */
+
+.demo-table-responsive {
+    overflow-x: auto;
+}
+
+.demo-crud-table {
+    min-width: 650px;
+}
+
+.demo-crud-table thead th {
+    padding: .85rem 1.2rem;
+
+    background: var(--acsoft-background);
+
+    border-bottom: 1px solid var(--acsoft-border);
+
+    color: var(--acsoft-muted);
+
+    font-size: .72rem;
+
+    font-weight: 700;
+
+    letter-spacing: .04em;
+
+    text-transform: uppercase;
+}
+
+.demo-crud-table tbody td {
+    padding: 1rem 1.2rem;
+
+    border-color: var(--acsoft-border);
+}
+
+.demo-crud-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+
+/* ========================================
+   PROVEEDOR
+======================================== */
+
+.demo-provider-cell {
+    display: flex;
+
+    align-items: center;
+
+    gap: .8rem;
+}
+
+.demo-provider-avatar {
+    flex: 0 0 auto;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 40px;
+    height: 40px;
+
+    background: var(--acsoft-accent-light);
+
+    border: 1px solid rgba(36, 151, 227, .13);
+
+    border-radius: 11px;
+
+    color: var(--acsoft-accent);
+
+    font-weight: 800;
+}
+
+.demo-provider-cell strong {
+    display: block;
+
+    color: var(--acsoft-primary);
+
+    font-size: .9rem;
+}
+
+.demo-provider-cell small {
+    display: block;
+
+    margin-top: .15rem;
+
+    color: var(--acsoft-muted);
+
+    font-size: .68rem;
+}
+
+.demo-date {
+    color: var(--acsoft-muted);
+
+    font-size: .8rem;
+}
+
+
+/* ========================================
+   ACCIONES
+======================================== */
+
+.demo-table-actions {
+    display: flex;
+
+    align-items: center;
+    justify-content: flex-end;
+
+    gap: .5rem;
+}
+
+.demo-table-actions form {
+    margin: 0;
+}
+
+.btn-demo-edit {
+    background: var(--acsoft-accent-light);
+
+    border: 1px solid rgba(36, 151, 227, .15);
+
+    color: var(--acsoft-secondary);
+
+    font-weight: 600;
+}
+
+.btn-demo-edit:hover {
+    background: var(--acsoft-accent);
+
+    border-color: var(--acsoft-accent);
+
+    color: white;
+}
+
+.btn-demo-delete {
+    background: #fff1f1;
+
+    border: 1px solid #f6d1d1;
+
+    color: #ba3b3b;
+
+    font-weight: 600;
+}
+
+.btn-demo-delete:hover {
+    background: #ba3b3b;
+
+    border-color: #ba3b3b;
+
+    color: white;
+}
+
+
+/* ========================================
+   EMPTY STATE
+======================================== */
+
+.demo-empty-state {
+    max-width: 520px;
+
+    margin: auto;
+
+    padding: 4rem 2rem;
+
+    text-align: center;
+}
+
+.demo-empty-icon {
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 58px;
+    height: 58px;
+
+    margin:
+        0 auto
+        1.2rem;
+
+    background: var(--acsoft-accent-light);
+
+    border-radius: 16px;
+
+    color: var(--acsoft-accent);
+
+    font-size: 1.7rem;
+}
+
+.demo-empty-state h2 {
+    margin-bottom: .6rem;
+
+    color: var(--acsoft-primary);
+
+    font-size: 1.3rem;
+
+    font-weight: 700;
+}
+
+.demo-empty-state p {
+    margin-bottom: 1.3rem;
+
+    color: var(--acsoft-muted);
+
+    font-size: .9rem;
+
+    line-height: 1.65;
+}
+
+
+/* ========================================
+   FORMULARIOS CRUD
+======================================== */
+
+.demo-form-page {
+    max-width: 720px;
+
+    margin: auto;
+}
+
+.demo-form-page-header {
+    margin-bottom: 1.5rem;
+}
+
+.demo-form-page-header h1 {
+    margin-bottom: .5rem;
+
+    color: var(--acsoft-primary);
+
+    font-size: 2rem;
+
+    font-weight: 750;
+}
+
+.demo-form-page-header p {
+    margin: 0;
+
+    color: var(--acsoft-muted);
+
+    line-height: 1.65;
+}
+
+.demo-back-link {
+    display: inline-flex;
+
+    margin-bottom: 1.5rem;
+
+    color: var(--acsoft-muted);
+
+    font-size: .8rem;
+
+    font-weight: 600;
+
+    text-decoration: none;
+}
+
+.demo-back-link:hover {
+    color: var(--acsoft-accent);
+}
+
+
+.demo-form-card {
+    padding: 2rem;
+
+    background: white;
+
+    border: 1px solid var(--acsoft-border);
+
+    border-radius: 16px;
+
+    box-shadow:
+        0 16px 40px rgba(15, 39, 68, .05);
+}
+
+.demo-form-group .form-label {
+    color: var(--acsoft-primary);
+
+    font-size: .85rem;
+
+    font-weight: 650;
+}
+
+.demo-form-group .form-label span {
+    color: var(--acsoft-accent);
+}
+
+.demo-form-group .form-control {
+    min-height: 48px;
+
+    background: var(--acsoft-background);
+
+    border: 1px solid var(--acsoft-border);
+
+    border-radius: 10px;
+
+    font-size: .9rem;
+}
+
+.demo-form-group .form-control:focus {
+    background: white;
+
+    border-color: rgba(36, 151, 227, .55);
+
+    box-shadow:
+        0 0 0 .2rem rgba(36, 151, 227, .08);
+}
+
+.demo-form-help {
+    margin-top: .45rem;
+
+    color: var(--acsoft-muted);
+
+    font-size: .72rem;
+
+    line-height: 1.5;
+}
+
+
+/* ========================================
+   BOTONES FORMULARIO
+======================================== */
+
+.demo-form-actions {
+    display: flex;
+
+    align-items: center;
+    justify-content: flex-end;
+
+    gap: .7rem;
+
+    margin-top: 2rem;
+
+    padding-top: 1.3rem;
+
+    border-top: 1px solid var(--acsoft-border);
+}
+
+.btn-demo-cancel {
+    background: white;
+
+    border: 1px solid var(--acsoft-border);
+
+    color: var(--acsoft-muted);
+
+    font-weight: 600;
+}
+
+.btn-demo-cancel:hover {
+    background: var(--acsoft-background);
+
+    border-color: #cdd4de;
+
+    color: var(--acsoft-primary);
+}
+
+
+/* ========================================
+   ALERTA
+======================================== */
+
+.demo-alert-success {
+    margin-bottom: 1.2rem;
+
+    background: rgba(40, 168, 115, .08);
+
+    border: 1px solid rgba(40, 168, 115, .18);
+
+    border-radius: 11px;
+
+    color: #247d59;
+
+    font-size: .85rem;
+}
+
+
+/* ========================================
+   MOBILE
+======================================== */
+
+@media (max-width: 575px) {
+
+    .demo-form-card {
+        padding: 1.3rem;
+    }
+
+    .demo-form-actions {
+        align-items: stretch;
+
+        flex-direction: column-reverse;
+    }
+
+    .demo-form-actions .btn {
+        width: 100%;
+    }
+
+}
