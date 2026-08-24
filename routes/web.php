@@ -2,13 +2,17 @@
 
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Demo\DemoController;
-use App\Http\Controllers\Demo\IngresoController;
-use App\Http\Controllers\Demo\ProductoController;
 use App\Http\Controllers\Demo\ProveedorController;
+use App\Http\Controllers\Demo\ProductoController;
+use App\Http\Controllers\Demo\IngresoController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'home.index')
     ->name('home');
+
+Route::post('/contacto', [ContactController::class, 'store'])
+    ->name('contact.store');
+
 
 Route::prefix('demo')
     ->name('demo.')
@@ -21,7 +25,9 @@ Route::prefix('demo')
         Route::resource(
             'proveedores',
             ProveedorController::class
-        );
+        )->parameters([
+            'proveedores' => 'proveedor',
+        ]);
 
         Route::resource(
             'productos',
@@ -32,23 +38,5 @@ Route::prefix('demo')
             'ingresos',
             IngresoController::class
         );
+
     });
-
-Route::post('/contacto', [ContactController::class, 'store'])
-    ->middleware('throttle:5,15')
-    ->name('contact.store');
-
-Route::get('/sitemap.xml', function () {
-
-    $urls = [
-        [
-            'loc' => route('home'),
-            'priority' => '1.0',
-        ],
-    ];
-
-    return response()
-        ->view('seo.sitemap', compact('urls'))
-        ->header('Content-Type', 'application/xml');
-})
-    ->name('sitemap');
