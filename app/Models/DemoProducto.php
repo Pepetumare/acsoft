@@ -5,22 +5,23 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-class DemoProveedor extends Model
+class DemoProducto extends Model
 {
-    protected $table = 'demo_proveedores';
+    protected $table = 'demo_productos';
 
     protected $fillable = [
         'demo_session_id',
         'nombre',
+        'unidad',
     ];
 
-    public function productos(): BelongsToMany
+    public function proveedores(): BelongsToMany
     {
         return $this->belongsToMany(
-            DemoProducto::class,
+            DemoProveedor::class,
             'demo_producto_proveedor',
-            'demo_proveedor_id',
-            'demo_producto_id'
+            'demo_producto_id',
+            'demo_proveedor_id'
         )->withTimestamps();
     }
 }

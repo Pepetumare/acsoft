@@ -204,11 +204,11 @@
 
     @include('home.sections.features')
 
-    @include('home.sections.demo')
+    {{-- @include('home.sections.demo')
 
     @include('home.sections.benefits')
 
-    @include('home.sections.industries')
+    @include('home.sections.industries') --}}
 
     @include('home.sections.services')
 

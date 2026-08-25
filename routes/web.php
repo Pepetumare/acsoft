@@ -25,18 +25,30 @@ Route::prefix('demo')
         Route::resource(
             'proveedores',
             ProveedorController::class
-        )->parameters([
-            'proveedores' => 'proveedor',
-        ]);
+        )
+            ->parameters([
+                'proveedores' => 'proveedor',
+            ]);
 
         Route::resource(
             'productos',
             ProductoController::class
-        );
+        )
+            ->parameters([
+                'productos' => 'producto',
+            ]);
 
         Route::resource(
             'ingresos',
             IngresoController::class
-        );
-
+        )
+            ->only([
+                'index',
+                'create',
+                'store',
+                'destroy',
+            ])
+            ->parameters([
+                'ingresos' => 'ingreso',
+            ]);
     });
