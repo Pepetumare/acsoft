@@ -41,11 +41,23 @@
                     Contacto
                 </a>
 
-                <li class="nav-item ms-lg-2 mt-3 mt-lg-0">
+                {{-- <li class="nav-item ms-lg-2 mt-3 mt-lg-0">
                     <a href="{{ route('demo.index') }}" class="btn btn-acsoft-primary px-4">
                         Probar demo
                     </a>
-                </li>
+                </li> --}}
+
+                <div class="d-flex gap-2">
+
+                    <a href="{{ route('login') }}" class="btn btn-outline-primary">
+                        Iniciar sesión
+                    </a>
+
+                    <a href="{{ route('demo.index') }}" class="btn btn-acsoft-primary">
+                        Probar demo
+                    </a>
+
+                </div>
 
             </ul>
 

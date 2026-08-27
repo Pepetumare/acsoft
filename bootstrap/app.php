@@ -4,6 +4,8 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\EnsureDemoSession;
+use App\Http\Middleware\EnsureUserIsSuperadmin;
+use App\Http\Middleware\EnsureBusinessHasModule;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,7 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'demo.session' => EnsureDemoSession::class,
+            'superadmin' => EnsureUserIsSuperadmin::class,
+            'module' => EnsureBusinessHasModule::class,
         ]);
+        
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
