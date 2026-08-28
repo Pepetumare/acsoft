@@ -7,6 +7,7 @@ use App\Models\Negocio;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ReporteController extends Controller
@@ -65,49 +66,55 @@ class ReporteController extends Controller
         Negocio $negocio
     ): array {
 
-        $desde = $request->filled('desde')
-            ? Carbon::parse($request->input('desde'))
+        $validated = $request->validate([
+            'desde' => ['nullable', 'date_format:Y-m-d'],
+            'hasta' => ['nullable', 'date_format:Y-m-d'],
+        ]);
+
+        $desde = isset($validated['desde'])
+            ? Carbon::createFromFormat('Y-m-d', $validated['desde'])->startOfDay()
             : now()->startOfMonth();
 
-        $hasta = $request->filled('hasta')
-            ? Carbon::parse($request->input('hasta'))
+        $hasta = isset($validated['hasta'])
+            ? Carbon::createFromFormat('Y-m-d', $validated['hasta'])->endOfDay()
             : now();
+
+        if ($desde->gt($hasta)) {
+            throw ValidationException::withMessages([
+                'hasta' => 'La fecha hasta debe ser igual o posterior a la fecha desde.',
+            ]);
+        }
+
+        if ($desde->diffInDays($hasta) > 366) {
+            throw ValidationException::withMessages([
+                'hasta' => 'El período del reporte no puede superar 366 días.',
+            ]);
+        }
 
 
         $ventasQuery = $negocio
             ->ventas()
-            ->whereDate(
-                'fecha',
-                '>=',
-                $desde->toDateString()
-            )
-            ->whereDate(
-                'fecha',
-                '<=',
-                $hasta->toDateString()
-            );
+            ->whereBetween('fecha', [
+                $desde->toDateString(),
+                $hasta->toDateString(),
+            ]);
 
 
         $gastosQuery = $negocio
             ->gastos()
-            ->whereDate(
-                'fecha',
-                '>=',
-                $desde->toDateString()
-            )
-            ->whereDate(
-                'fecha',
-                '<=',
-                $hasta->toDateString()
-            );
+            ->whereBetween('fecha', [
+                $desde->toDateString(),
+                $hasta->toDateString(),
+            ]);
 
 
-        $totalVentas = (float) (clone $ventasQuery)
-            ->sum('total');
+        $resumenVentas = (clone $ventasQuery)
+            ->selectRaw('COALESCE(SUM(total), 0) as total_ventas')
+            ->selectRaw('COUNT(*) as cantidad_ventas')
+            ->first();
 
-
-        $cantidadVentas = (clone $ventasQuery)
-            ->count();
+        $totalVentas = (float) $resumenVentas->total_ventas;
+        $cantidadVentas = (int) $resumenVentas->cantidad_ventas;
 
 
         $ticketPromedio = $cantidadVentas > 0

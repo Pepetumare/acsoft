@@ -90,6 +90,7 @@ Route::middleware('guest')->group(function () {
         ->name('login');
 
     Route::post('/login', [LoginController::class, 'store'])
+        ->middleware('throttle:login')
         ->name('login.store');
 });
 
@@ -150,6 +151,7 @@ Route::middleware('auth')
             '/gestion/{negocio}',
             [GestionDashboardController::class, 'index']
         )
+            ->middleware('tenant.business')
             ->name('gestion.dashboard');
 
         // Route::get(
@@ -163,6 +165,7 @@ Route::middleware('auth')
             ->name('gestion.ventas.')
             ->middleware([
                 'auth',
+                'tenant.business',
                 'module:ventas',
             ])
             ->group(function () {
@@ -200,6 +203,7 @@ Route::middleware('auth')
             ->name('gestion.gastos.')
             ->middleware([
                 'auth',
+                'tenant.business',
                 'module:gastos',
             ])
             ->group(function () {
@@ -239,6 +243,7 @@ Route::middleware('auth')
         )
             ->middleware([
                 'auth',
+                'tenant.business',
                 'module:reportes',
             ])
             ->name('gestion.reportes.index');
@@ -248,6 +253,7 @@ Route::middleware('auth')
         )
             ->middleware([
                 'auth',
+                'tenant.business',
                 'module:reportes',
             ])
             ->name('gestion.reportes.pdf');
@@ -256,6 +262,7 @@ Route::middleware('auth')
             ->name('gestion.caja.')
             ->middleware([
                 'auth',
+                'tenant.business',
                 'module:caja',
             ])
             ->group(function () {
@@ -300,7 +307,9 @@ Route::middleware('auth')
             ->name('gestion.productos.')
             ->middleware([
                 'auth',
+                'tenant.business',
                 'module:productos',
+                'business.role:admin',
             ])
             ->group(function () {
 
@@ -339,7 +348,9 @@ Route::middleware('auth')
             ->name('gestion.stock.')
             ->middleware([
                 'auth',
+                'tenant.business',
                 'module:stock',
+                'business.role:admin',
             ])
             ->group(function () {
 
@@ -363,7 +374,9 @@ Route::middleware('auth')
             ->name('gestion.compras.')
             ->middleware([
                 'auth',
+                'tenant.business',
                 'module:compras',
+                'business.role:admin',
             ])
             ->group(function () {
 

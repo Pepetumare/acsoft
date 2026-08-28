@@ -6,6 +6,8 @@ use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\EnsureDemoSession;
 use App\Http\Middleware\EnsureUserIsSuperadmin;
 use App\Http\Middleware\EnsureBusinessHasModule;
+use App\Http\Middleware\EnsureUserCanAccessBusiness;
+use App\Http\Middleware\EnsureUserHasBusinessRole;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -18,6 +20,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'demo.session' => EnsureDemoSession::class,
             'superadmin' => EnsureUserIsSuperadmin::class,
             'module' => EnsureBusinessHasModule::class,
+            'tenant.business' => EnsureUserCanAccessBusiness::class,
+            'business.role' => EnsureUserHasBusinessRole::class,
         ]);
         
     })

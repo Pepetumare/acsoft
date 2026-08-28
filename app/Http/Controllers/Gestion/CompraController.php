@@ -8,7 +8,7 @@ use App\Models\Negocio;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class CompraController extends Controller
@@ -104,22 +104,12 @@ class CompraController extends Controller
                 'required',
                 'array',
                 'min:1',
+                'max:100',
             ],
 
             'detalles.*.producto_id' => [
                 'required',
                 'integer',
-
-                Rule::exists(
-                    'productos',
-                    'id'
-                )->where(
-                    fn ($query) =>
-                        $query->where(
-                            'negocio_id',
-                            $negocio->id
-                        )
-                ),
             ],
 
             'detalles.*.cantidad' => [
@@ -136,11 +126,42 @@ class CompraController extends Controller
         ]);
 
 
+        $usaStock = $negocio->tieneModulo('stock');
+
+        $productoIds = collect($validated['detalles'])
+            ->pluck('producto_id')
+            ->map(fn ($productoId) => (int) $productoId)
+            ->unique()
+            ->sort()
+            ->values();
+
+        $cantidadesPorProducto = collect($validated['detalles'])
+            ->groupBy(fn (array $detalle) => (int) $detalle['producto_id'])
+            ->map(fn ($detalles) => $detalles->sum(
+                fn (array $detalle) => (float) $detalle['cantidad']
+            ));
+
         DB::transaction(function () use (
             $validated,
             $request,
-            $negocio
+            $negocio,
+            $usaStock,
+            $productoIds,
+            $cantidadesPorProducto
         ) {
+            $productos = $negocio
+                ->productos()
+                ->whereIn('id', $productoIds)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            if ($productos->count() !== $productoIds->count()) {
+                throw ValidationException::withMessages([
+                    'detalles' => 'Uno de los productos no pertenece al negocio.',
+                ]);
+            }
 
             $compra = $negocio->compras()->create([
                 'user_id' => $request->user()->id,
@@ -150,30 +171,13 @@ class CompraController extends Controller
                 'total' => 0,
             ]);
 
-
             $total = 0;
 
-
             foreach ($validated['detalles'] as $detalle) {
-
-                $producto = $negocio
-                    ->productos()
-                    ->findOrFail(
-                        $detalle['producto_id']
-                    );
-
-
-                $cantidad =
-                    (float) $detalle['cantidad'];
-
-                $costo =
-                    (float) $detalle['costo_unitario'];
-
-                $subtotal = round(
-                    $cantidad * $costo,
-                    2
-                );
-
+                $producto = $productos->get((int) $detalle['producto_id']);
+                $cantidad = (float) $detalle['cantidad'];
+                $costo = (float) $detalle['costo_unitario'];
+                $subtotal = round($cantidad * $costo, 2);
 
                 $compra->detalles()->create([
                     'producto_id' => $producto->id,
@@ -182,51 +186,28 @@ class CompraController extends Controller
                     'subtotal' => $subtotal,
                 ]);
 
-
                 $total += $subtotal;
+            }
 
-
-                if ($negocio->tieneModulo('stock')) {
-
-                    $negocio
-                        ->movimientosStock()
-                        ->create([
-                            'producto_id' =>
-                                $producto->id,
-
-                            'user_id' =>
-                                $request->user()->id,
-
-                            'tipo' =>
-                                'entrada',
-
-                            'cantidad' =>
-                                $cantidad,
-
-                            'concepto' =>
-                                'Compra #' . $compra->id,
-
-                            'origen_tipo' =>
-                                'compra',
-
-                            'origen_id' =>
-                                $compra->id,
-
-                            'observacion' =>
-                                'Entrada automática por compra.',
-                        ]);
+            if ($usaStock) {
+                foreach ($cantidadesPorProducto as $productoId => $cantidad) {
+                    $negocio->movimientosStock()->create([
+                        'producto_id' => $productoId,
+                        'user_id' => $request->user()->id,
+                        'tipo' => 'entrada',
+                        'cantidad' => $cantidad,
+                        'concepto' => 'Compra #'.$compra->id,
+                        'origen_tipo' => 'compra',
+                        'origen_id' => $compra->id,
+                        'observacion' => 'Entrada automática por compra.',
+                    ]);
                 }
             }
 
-
             $compra->update([
-                'total' => round(
-                    $total,
-                    2
-                ),
+                'total' => round($total, 2),
             ]);
         });
-
 
         return redirect()
             ->route(

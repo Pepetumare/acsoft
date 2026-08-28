@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Caja extends Model
 {
+    private ?array $resumenMovimientos = null;
+
     protected $fillable = [
         'negocio_id',
         'user_apertura_id',
@@ -67,25 +69,48 @@ class Caja extends Model
 
     public function totalIngresos(): float
     {
-        return (float) $this
-            ->movimientos()
-            ->where('tipo', 'ingreso')
-            ->sum('monto');
+        return $this->resumenMovimientos()['ingresos'];
     }
 
     public function totalEgresos(): float
     {
-        return (float) $this
-            ->movimientos()
-            ->where('tipo', 'egreso')
-            ->sum('monto');
+        return $this->resumenMovimientos()['egresos'];
     }
 
     public function calcularSaldoEsperado(): float
     {
-        return
-            (float) $this->saldo_inicial
-            + $this->totalIngresos()
-            - $this->totalEgresos();
+        $resumen = $this->resumenMovimientos();
+
+        return (float) $this->saldo_inicial
+            + $resumen['ingresos']
+            - $resumen['egresos'];
+    }
+
+    private function resumenMovimientos(): array
+    {
+        if ($this->resumenMovimientos !== null) {
+            return $this->resumenMovimientos;
+        }
+
+        if ($this->relationLoaded('movimientos')) {
+            return $this->resumenMovimientos = [
+                'ingresos' => (float) $this->movimientos
+                    ->where('tipo', 'ingreso')
+                    ->sum('monto'),
+                'egresos' => (float) $this->movimientos
+                    ->where('tipo', 'egreso')
+                    ->sum('monto'),
+            ];
+        }
+
+        $resumen = $this->movimientos()
+            ->selectRaw("COALESCE(SUM(CASE WHEN tipo = 'ingreso' THEN monto ELSE 0 END), 0) as ingresos")
+            ->selectRaw("COALESCE(SUM(CASE WHEN tipo = 'egreso' THEN monto ELSE 0 END), 0) as egresos")
+            ->first();
+
+        return $this->resumenMovimientos = [
+            'ingresos' => (float) $resumen->ingresos,
+            'egresos' => (float) $resumen->egresos,
+        ];
     }
 }

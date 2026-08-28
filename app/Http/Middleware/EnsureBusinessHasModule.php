@@ -24,11 +24,6 @@ class EnsureBusinessHasModule
         );
 
         abort_unless(
-            $negocio->activo,
-            403
-        );
-
-        abort_unless(
             $negocio->tieneModulo($modulo),
             403,
             'Este módulo no está habilitado para este negocio.'

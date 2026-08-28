@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -38,22 +39,33 @@ class Producto extends Model
 
     public function stockActual(): float
     {
-        $entradas = (float) $this
-            ->movimientosStock()
-            ->where('tipo', 'entrada')
-            ->sum('cantidad');
+        if (array_key_exists('stock_actual', $this->attributes)) {
+            return (float) $this->attributes['stock_actual'];
+        }
 
-        $salidas = (float) $this
+        return (float) $this
             ->movimientosStock()
-            ->where('tipo', 'salida')
-            ->sum('cantidad');
+            ->selectRaw(self::stockExpression().' as stock_actual')
+            ->value('stock_actual');
+    }
 
-        $ajustes = (float) $this
-            ->movimientosStock()
-            ->where('tipo', 'ajuste')
-            ->sum('cantidad');
+    public function scopeWithStockActual(Builder $query): Builder
+    {
+        return $query->addSelect([
+            'stock_actual' => StockMovimiento::query()
+                ->selectRaw(self::stockExpression())
+                ->whereColumn('producto_id', 'productos.id'),
+        ]);
+    }
 
-        return $entradas - $salidas + $ajustes;
+    public static function stockExpression(): string
+    {
+        return "COALESCE(SUM(CASE
+            WHEN tipo = 'entrada' THEN cantidad
+            WHEN tipo = 'salida' THEN -cantidad
+            WHEN tipo = 'ajuste' THEN cantidad
+            ELSE 0
+        END), 0)";
     }
 
     public function detallesVenta(): HasMany

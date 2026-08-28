@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Gestion;
 
 use App\Http\Controllers\Controller;
+use App\Models\CajaMovimiento;
 use App\Models\Gasto;
 use App\Models\Negocio;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class GastoController extends Controller
@@ -119,34 +121,62 @@ class GastoController extends Controller
         ]);
 
 
-        $gasto = $negocio->gastos()->create([
-            'user_id' => $request->user()->id,
-            'fecha' => $validated['fecha'],
-            'concepto' => $validated['concepto'],
-            'monto' => $validated['monto'],
-            'categoria' => $validated['categoria'] ?? null,
-            'metodo_pago' => $validated['metodo_pago'] ?? null,
-            'observacion' => $validated['observacion'] ?? null,
-        ]);
+        $usaCaja = $negocio->tieneModulo('caja');
 
-        if ($gasto->metodo_pago === 'Efectivo') {
+        $creado = DB::transaction(function () use (
+            $validated,
+            $request,
+            $negocio,
+            $usaCaja
+        ) {
+            $caja = null;
 
-            $caja = $negocio->cajaAbierta();
+            if (($validated['metodo_pago'] ?? null) === 'Efectivo' && $usaCaja) {
+                $caja = $negocio
+                    ->cajas()
+                    ->where('estado', 'abierta')
+                    ->latest('id')
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$caja || !$caja->estaAbierta()) {
+                    return false;
+                }
+            }
+
+            $gasto = $negocio->gastos()->create([
+                'user_id' => $request->user()->id,
+                'fecha' => $validated['fecha'],
+                'concepto' => $validated['concepto'],
+                'monto' => $validated['monto'],
+                'categoria' => $validated['categoria'] ?? null,
+                'metodo_pago' => $validated['metodo_pago'] ?? null,
+                'observacion' => $validated['observacion'] ?? null,
+            ]);
 
             if ($caja) {
-
                 $caja->movimientos()->create([
                     'user_id' => $request->user()->id,
                     'tipo' => 'egreso',
-                    'concepto' => 'Gasto #' . $gasto->id,
+                    'concepto' => 'Gasto #'.$gasto->id,
                     'monto' => $gasto->monto,
                     'observacion' => 'Movimiento automático por gasto en efectivo.',
                     'origen_tipo' => 'gasto',
                     'origen_id' => $gasto->id,
                 ]);
             }
-        }
 
+            return true;
+        });
+
+        if (!$creado) {
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Debe existir una caja abierta para registrar un gasto en efectivo.'
+                );
+        }
 
         return redirect()
             ->route(
@@ -170,19 +200,41 @@ class GastoController extends Controller
             404
         );
 
-        $negocio
-            ->cajas()
-            ->with('movimientos')
-            ->get()
-            ->each(function ($caja) use ($gasto) {
+        $eliminado = DB::transaction(function () use ($negocio, $gasto) {
+            $movimiento = CajaMovimiento::query()
+                ->where('origen_tipo', 'gasto')
+                ->where('origen_id', $gasto->id)
+                ->whereHas(
+                    'caja',
+                    fn ($query) => $query->where('negocio_id', $negocio->id)
+                )
+                ->first();
 
-                $caja->movimientos()
-                    ->where('origen_tipo', 'gasto')
-                    ->where('origen_id', $gasto->id)
-                    ->delete();
-            });
+            if ($movimiento) {
+                $caja = $negocio
+                    ->cajas()
+                    ->whereKey($movimiento->caja_id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
-        $gasto->delete();
+                if (!$caja->estaAbierta()) {
+                    return false;
+                }
+
+                $movimiento->delete();
+            }
+
+            $gasto->delete();
+
+            return true;
+        });
+
+        if (!$eliminado) {
+            return back()->with(
+                'error',
+                'No se puede eliminar el gasto porque pertenece a una caja cerrada.'
+            );
+        }
 
 
         return redirect()

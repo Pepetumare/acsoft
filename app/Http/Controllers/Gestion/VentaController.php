@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Gestion;
 
 use App\Http\Controllers\Controller;
+use App\Models\CajaMovimiento;
 use App\Models\Negocio;
+use App\Models\Producto;
 use App\Models\Venta;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class VentaController extends Controller
@@ -93,19 +96,10 @@ class VentaController extends Controller
             $productos = $negocio
                 ->productos()
                 ->where('activo', true)
+                ->when($usaStock, fn ($query) => $query->withStockActual())
                 ->orderBy('nombre')
                 ->get();
 
-            if ($usaStock) {
-
-                $productos->each(
-                    function ($producto) {
-
-                        $producto->stock_actual =
-                            $producto->stockActual();
-                    }
-                );
-            }
         }
 
 
@@ -155,6 +149,7 @@ class VentaController extends Controller
                 'required',
                 'array',
                 'min:1',
+                'max:100',
             ],
 
             'detalles.*.descripcion' => [
@@ -206,274 +201,137 @@ class VentaController extends Controller
             $request->validate($rules);
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Validar stock antes de crear la venta
-        |--------------------------------------------------------------------------
-        |
-        | Agrupamos productos porque una misma venta podría incluir
-        | el mismo producto más de una vez.
-        |
-        */
-
-        if ($usaProductos && $usaStock) {
-
-            $cantidadesPorProducto = [];
-
-
-            foreach (
-                $validated['detalles']
-                as $detalle
-            ) {
-
-                if (
-                    empty($detalle['producto_id'])
-                ) {
-                    continue;
-                }
-
-
-                $productoId =
-                    (int) $detalle['producto_id'];
-
-
-                $cantidadesPorProducto[$productoId] =
-                    (
-                        $cantidadesPorProducto[$productoId] ?? 0
-                    )
-                    +
-                    (float)
-                    $detalle['cantidad'];
-            }
-
-
-            foreach (
-                $cantidadesPorProducto
-                as $productoId => $cantidad
-            ) {
-
-                $producto = $negocio
-                    ->productos()
-                    ->findOrFail(
-                        $productoId
-                    );
-
-
-                if (
-                    $producto->stockActual()
-                    < $cantidad
-                ) {
-
-                    return back()
-                        ->withInput()
-                        ->with(
-                            'error',
-                            'Stock insuficiente para '
-                                . $producto->nombre
-                                . '. Disponible: '
-                                . $producto->stockActual()
-                                . ' '
-                                . $producto->unidad
-                                . '.'
-                        );
-                }
-            }
-        }
-
+        $cantidadesPorProducto = collect($validated['detalles'])
+            ->filter(fn (array $detalle) => !empty($detalle['producto_id']))
+            ->groupBy(fn (array $detalle) => (int) $detalle['producto_id'])
+            ->map(fn ($detalles) => $detalles->sum(
+                fn (array $detalle) => (float) $detalle['cantidad']
+            ));
 
         DB::transaction(function () use (
             $validated,
             $request,
             $negocio,
             $usaProductos,
-            $usaStock
+            $usaStock,
+            $cantidadesPorProducto
         ) {
+            $productos = collect();
 
-            $venta = $negocio
-                ->ventas()
-                ->create([
-                    'user_id' =>
-                    $request->user()->id,
+            if ($usaProductos && $cantidadesPorProducto->isNotEmpty()) {
+                $productoIds = $cantidadesPorProducto
+                    ->keys()
+                    ->sort()
+                    ->values();
 
-                    'fecha' =>
-                    $validated['fecha'],
+                $productos = $negocio
+                    ->productos()
+                    ->whereIn('id', $productoIds)
+                    ->orderBy('id')
+                    ->lockForUpdate()
+                    ->get()
+                    ->keyBy('id');
 
-                    'metodo_pago' =>
-                    $validated['metodo_pago']
-                        ?? null,
+                if ($productos->count() !== $productoIds->count()) {
+                    throw ValidationException::withMessages([
+                        'detalles' => 'Uno de los productos no pertenece al negocio.',
+                    ]);
+                }
 
-                    'observacion' =>
-                    $validated['observacion']
-                        ?? null,
+                if ($usaStock) {
+                    $stocks = DB::table('stock_movimientos')
+                        ->select('producto_id')
+                        ->selectRaw(Producto::stockExpression().' as stock_actual')
+                        ->whereIn('producto_id', $productoIds)
+                        ->groupBy('producto_id')
+                        ->pluck('stock_actual', 'producto_id');
 
-                    'total' =>
-                    0,
-                ]);
+                    foreach ($cantidadesPorProducto as $productoId => $cantidad) {
+                        $disponible = (float) ($stocks[$productoId] ?? 0);
 
+                        if ($disponible < $cantidad) {
+                            $producto = $productos->get($productoId);
+
+                            throw ValidationException::withMessages([
+                                'detalles' => 'Stock insuficiente para '
+                                    .$producto->nombre.'. Disponible: '
+                                    .$disponible.' '.$producto->unidad.'.',
+                            ]);
+                        }
+                    }
+                }
+            }
+
+            $venta = $negocio->ventas()->create([
+                'user_id' => $request->user()->id,
+                'fecha' => $validated['fecha'],
+                'metodo_pago' => $validated['metodo_pago'] ?? null,
+                'observacion' => $validated['observacion'] ?? null,
+                'total' => 0,
+            ]);
 
             $total = 0;
 
-
-            foreach (
-                $validated['detalles']
-                as $detalle
-            ) {
-
+            foreach ($validated['detalles'] as $detalle) {
                 $producto = null;
 
-
-                if (
-                    $usaProductos
-                    && !empty($detalle['producto_id'])
-                ) {
-
-                    $producto = $negocio
-                        ->productos()
-                        ->findOrFail(
-                            $detalle['producto_id']
-                        );
+                if ($usaProductos && !empty($detalle['producto_id'])) {
+                    $producto = $productos->get((int) $detalle['producto_id']);
                 }
 
+                $cantidad = (float) $detalle['cantidad'];
+                $precio = (float) $detalle['precio_unitario'];
+                $subtotal = round($cantidad * $precio, 2);
 
-                $cantidad =
-                    (float)
-                    $detalle['cantidad'];
-
-                $precio =
-                    (float)
-                    $detalle['precio_unitario'];
-
-                $subtotal = round(
-                    $cantidad * $precio,
-                    2
-                );
-
-
-                $venta
-                    ->detalles()
-                    ->create([
-                        'producto_id' =>
-                        $producto?->id,
-
-                        'descripcion' =>
-                        $detalle['descripcion'],
-
-                        'cantidad' =>
-                        $cantidad,
-
-                        'precio_unitario' =>
-                        $precio,
-
-                        'subtotal' =>
-                        $subtotal,
-                    ]);
-
+                $venta->detalles()->create([
+                    'producto_id' => $producto?->id,
+                    'descripcion' => $detalle['descripcion'],
+                    'cantidad' => $cantidad,
+                    'precio_unitario' => $precio,
+                    'subtotal' => $subtotal,
+                ]);
 
                 $total += $subtotal;
 
-
-                /*
-                |--------------------------------------------------------------------------
-                | Salida automática de stock
-                |--------------------------------------------------------------------------
-                */
-
-                if (
-                    $producto
-                    && $usaStock
-                ) {
-
-                    $negocio
-                        ->movimientosStock()
-                        ->create([
-                            'producto_id' =>
-                            $producto->id,
-
-                            'user_id' =>
-                            $request
-                                ->user()
-                                ->id,
-
-                            'tipo' =>
-                            'salida',
-
-                            'cantidad' =>
-                            $cantidad,
-
-                            'concepto' =>
-                            'Venta #'
-                                . $venta->id,
-
-                            'origen_tipo' =>
-                            'venta',
-
-                            'origen_id' =>
-                            $venta->id,
-
-                            'observacion' =>
-                            'Salida automática por venta.',
-                        ]);
+                if ($producto && $usaStock) {
+                    $negocio->movimientosStock()->create([
+                        'producto_id' => $producto->id,
+                        'user_id' => $request->user()->id,
+                        'tipo' => 'salida',
+                        'cantidad' => $cantidad,
+                        'concepto' => 'Venta #'.$venta->id,
+                        'origen_tipo' => 'venta',
+                        'origen_id' => $venta->id,
+                        'observacion' => 'Salida automática por venta.',
+                    ]);
                 }
             }
 
-
             $venta->update([
-                'total' =>
-                round(
-                    $total,
-                    2
-                ),
+                'total' => round($total, 2),
             ]);
 
-
-            /*
-            |--------------------------------------------------------------------------
-            | Movimiento automático de Caja
-            |--------------------------------------------------------------------------
-            */
-
-            if (
-                $venta->metodo_pago
-                === 'Efectivo'
-            ) {
-
-                $caja =
-                    $negocio->cajaAbierta();
-
+            if ($venta->metodo_pago === 'Efectivo') {
+                $caja = $negocio
+                    ->cajas()
+                    ->where('estado', 'abierta')
+                    ->latest('id')
+                    ->lockForUpdate()
+                    ->first();
 
                 if ($caja) {
-
-                    $caja
-                        ->movimientos()
-                        ->create([
-                            'user_id' =>
-                            $request
-                                ->user()
-                                ->id,
-
-                            'tipo' =>
-                            'ingreso',
-
-                            'concepto' =>
-                            'Venta #'
-                                . $venta->id,
-
-                            'monto' =>
-                            $venta->total,
-
-                            'observacion' =>
-                            'Movimiento automático por venta en efectivo.',
-
-                            'origen_tipo' =>
-                            'venta',
-
-                            'origen_id' =>
-                            $venta->id,
-                        ]);
+                    $caja->movimientos()->create([
+                        'user_id' => $request->user()->id,
+                        'tipo' => 'ingreso',
+                        'concepto' => 'Venta #'.$venta->id,
+                        'monto' => $venta->total,
+                        'observacion' => 'Movimiento automático por venta en efectivo.',
+                        'origen_tipo' => 'venta',
+                        'origen_id' => $venta->id,
+                    ]);
                 }
             }
         });
-
 
         return redirect()
             ->route(
@@ -499,63 +357,46 @@ class VentaController extends Controller
         );
 
 
-        DB::transaction(function () use (
-            $negocio,
-            $venta
-        ) {
+        $eliminada = DB::transaction(function () use ($negocio, $venta) {
+            $movimientoCaja = CajaMovimiento::query()
+                ->where('origen_tipo', 'venta')
+                ->where('origen_id', $venta->id)
+                ->whereHas(
+                    'caja',
+                    fn ($query) => $query->where('negocio_id', $negocio->id)
+                )
+                ->first();
 
-            /*
-            |--------------------------------------------------------------------------
-            | Eliminar movimientos automáticos de Stock
-            |--------------------------------------------------------------------------
-            */
+            if ($movimientoCaja) {
+                $caja = $negocio
+                    ->cajas()
+                    ->whereKey($movimientoCaja->caja_id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                if (!$caja->estaAbierta()) {
+                    return false;
+                }
+            }
 
             $negocio
                 ->movimientosStock()
-                ->where(
-                    'origen_tipo',
-                    'venta'
-                )
-                ->where(
-                    'origen_id',
-                    $venta->id
-                )
+                ->where('origen_tipo', 'venta')
+                ->where('origen_id', $venta->id)
                 ->delete();
 
-
-            /*
-            |--------------------------------------------------------------------------
-            | Eliminar movimiento automático de Caja
-            |--------------------------------------------------------------------------
-            */
-
-            $negocio
-                ->cajas()
-                ->with('movimientos')
-                ->get()
-                ->each(
-                    function ($caja) use (
-                        $venta
-                    ) {
-
-                        $caja
-                            ->movimientos()
-                            ->where(
-                                'origen_tipo',
-                                'venta'
-                            )
-                            ->where(
-                                'origen_id',
-                                $venta->id
-                            )
-                            ->delete();
-                    }
-                );
-
-
+            $movimientoCaja?->delete();
             $venta->delete();
+
+            return true;
         });
 
+        if (!$eliminada) {
+            return back()->with(
+                'error',
+                'No se puede eliminar la venta porque pertenece a una caja cerrada.'
+            );
+        }
 
         return redirect()
             ->route(

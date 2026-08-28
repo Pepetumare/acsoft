@@ -7,7 +7,9 @@ use App\Models\Negocio;
 use App\Models\Producto;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class StockController extends Controller
@@ -20,13 +22,9 @@ class StockController extends Controller
         $productos = $negocio
             ->productos()
             ->where('activo', true)
+            ->withStockActual()
             ->orderBy('nombre')
             ->get();
-
-        $productos->each(function ($producto) {
-            $producto->stock_actual =
-                $producto->stockActual();
-        });
 
         return view(
             'gestion.stock.index',
@@ -89,53 +87,42 @@ class StockController extends Controller
         ]);
 
 
-        $producto = $negocio
-            ->productos()
-            ->findOrFail(
-                $validated['producto_id']
-            );
+        $cantidad = (float) $validated['cantidad'];
 
-
-        $cantidad =
-            (float) $validated['cantidad'];
-
-
-        if (
-            in_array(
-                $validated['tipo'],
-                ['entrada', 'salida']
-            )
-        ) {
+        if (in_array($validated['tipo'], ['entrada', 'salida'])) {
             $cantidad = abs($cantidad);
         }
 
-
-        if (
-            $validated['tipo'] === 'salida'
-            && $producto->stockActual() < $cantidad
+        DB::transaction(function () use (
+            $validated,
+            $request,
+            $negocio,
+            $cantidad
         ) {
-            return back()
-                ->withInput()
-                ->with(
-                    'error',
-                    'No hay stock suficiente para registrar esta salida.'
-                );
-        }
+            $producto = $negocio
+                ->productos()
+                ->whereKey($validated['producto_id'])
+                ->lockForUpdate()
+                ->firstOrFail();
 
+            if (
+                $validated['tipo'] === 'salida'
+                && $producto->stockActual() < $cantidad
+            ) {
+                throw ValidationException::withMessages([
+                    'cantidad' => 'No hay stock suficiente para registrar esta salida.',
+                ]);
+            }
 
-        $negocio
-            ->movimientosStock()
-            ->create([
+            $negocio->movimientosStock()->create([
                 'producto_id' => $producto->id,
                 'user_id' => $request->user()->id,
                 'tipo' => $validated['tipo'],
                 'cantidad' => $cantidad,
                 'concepto' => $validated['concepto'],
-                'observacion' =>
-                    $validated['observacion']
-                    ?? null,
+                'observacion' => $validated['observacion'] ?? null,
             ]);
-
+        });
 
         return redirect()
             ->route(
