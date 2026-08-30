@@ -55,6 +55,16 @@
 
     </div>
 
+    @if ($errors->any())
+        <div class="alert alert-danger" role="alert">
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
 
     {{-- Filtros --}}
     <div class="contact-form-card mb-4">
@@ -81,9 +91,18 @@
                     type="date"
                     id="desde"
                     name="desde"
-                    value="{{ $desde->toDateString() }}"
-                    class="form-control"
+                    value="{{ old(
+                        'desde',
+                        request('desde', $desde->toDateString())
+                    ) }}"
+                    class="form-control @error('desde') is-invalid @enderror"
                 >
+
+                @error('desde')
+                    <div class="invalid-feedback">
+                        {{ $message }}
+                    </div>
+                @enderror
 
             </div>
 
@@ -101,9 +120,18 @@
                     type="date"
                     id="hasta"
                     name="hasta"
-                    value="{{ $hasta->toDateString() }}"
-                    class="form-control"
+                    value="{{ old(
+                        'hasta',
+                        request('hasta', $hasta->toDateString())
+                    ) }}"
+                    class="form-control @error('hasta') is-invalid @enderror"
                 >
+
+                @error('hasta')
+                    <div class="invalid-feedback">
+                        {{ $message }}
+                    </div>
+                @enderror
 
             </div>
 

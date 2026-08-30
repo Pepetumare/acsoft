@@ -33,6 +33,22 @@
             Registra una salida de dinero del negocio.
         </p>
 
+        @if (session('error'))
+            <div class="alert alert-danger" role="alert">
+                {{ session('error') }}
+            </div>
+        @endif
+
+        @if ($errors->any())
+            <div class="alert alert-danger" role="alert">
+                <ul class="mb-0">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
 
         <div class="contact-form-card">
 
@@ -66,9 +82,13 @@
                                 'fecha',
                                 now()->toDateString()
                             ) }}"
-                            class="form-control"
+                            class="form-control @error('fecha') is-invalid @enderror"
                             required
                         >
+
+                        @error('fecha')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
 
                     </div>
 
@@ -87,10 +107,14 @@
                             id="concepto"
                             name="concepto"
                             value="{{ old('concepto') }}"
-                            class="form-control"
+                            class="form-control @error('concepto') is-invalid @enderror"
                             placeholder="Ej: Compra de bolsas"
                             required
                         >
+
+                        @error('concepto')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
 
                     </div>
 
@@ -111,9 +135,13 @@
                             value="{{ old('monto') }}"
                             min="1"
                             step="1"
-                            class="form-control"
+                            class="form-control @error('monto') is-invalid @enderror"
                             required
                         >
+
+                        @error('monto')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
 
                     </div>
 
@@ -130,42 +158,46 @@
                         <select
                             id="categoria"
                             name="categoria"
-                            class="form-select"
+                            class="form-select @error('categoria') is-invalid @enderror"
                         >
 
                             <option value="">
                                 Sin categoría
                             </option>
 
-                            <option value="Mercadería">
+                            <option value="Mercadería" @selected(old('categoria') === 'Mercadería')>
                                 Mercadería
                             </option>
 
-                            <option value="Servicios">
+                            <option value="Servicios" @selected(old('categoria') === 'Servicios')>
                                 Servicios
                             </option>
 
-                            <option value="Transporte">
+                            <option value="Transporte" @selected(old('categoria') === 'Transporte')>
                                 Transporte
                             </option>
 
-                            <option value="Insumos">
+                            <option value="Insumos" @selected(old('categoria') === 'Insumos')>
                                 Insumos
                             </option>
 
-                            <option value="Arriendo">
+                            <option value="Arriendo" @selected(old('categoria') === 'Arriendo')>
                                 Arriendo
                             </option>
 
-                            <option value="Personal">
+                            <option value="Personal" @selected(old('categoria') === 'Personal')>
                                 Personal
                             </option>
 
-                            <option value="Otros">
+                            <option value="Otros" @selected(old('categoria') === 'Otros')>
                                 Otros
                             </option>
 
                         </select>
+
+                        @error('categoria')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
 
                     </div>
 
@@ -182,30 +214,34 @@
                         <select
                             id="metodo_pago"
                             name="metodo_pago"
-                            class="form-select"
+                            class="form-select @error('metodo_pago') is-invalid @enderror"
                         >
 
                             <option value="">
                                 Sin especificar
                             </option>
 
-                            <option value="Efectivo">
+                            <option value="Efectivo" @selected(old('metodo_pago') === 'Efectivo')>
                                 Efectivo
                             </option>
 
-                            <option value="Débito">
+                            <option value="Débito" @selected(old('metodo_pago') === 'Débito')>
                                 Débito
                             </option>
 
-                            <option value="Crédito">
+                            <option value="Crédito" @selected(old('metodo_pago') === 'Crédito')>
                                 Crédito
                             </option>
 
-                            <option value="Transferencia">
+                            <option value="Transferencia" @selected(old('metodo_pago') === 'Transferencia')>
                                 Transferencia
                             </option>
 
                         </select>
+
+                        @error('metodo_pago')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
 
                     </div>
 
@@ -223,8 +259,12 @@
                             id="observacion"
                             name="observacion"
                             rows="4"
-                            class="form-control"
+                            class="form-control @error('observacion') is-invalid @enderror"
                         >{{ old('observacion') }}</textarea>
+
+                        @error('observacion')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
 
                     </div>
 

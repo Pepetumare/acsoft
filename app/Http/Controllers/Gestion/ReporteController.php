@@ -69,6 +69,9 @@ class ReporteController extends Controller
         $validated = $request->validate([
             'desde' => ['nullable', 'date_format:Y-m-d'],
             'hasta' => ['nullable', 'date_format:Y-m-d'],
+        ], [
+            'desde.date_format' => 'La fecha desde debe tener el formato AAAA-MM-DD.',
+            'hasta.date_format' => 'La fecha hasta debe tener el formato AAAA-MM-DD.',
         ]);
 
         $desde = isset($validated['desde'])

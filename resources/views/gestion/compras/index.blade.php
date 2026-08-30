@@ -188,16 +188,32 @@
                                         as $detalle
                                     )
 
-                                        <div>
+                                        <div class="mb-2">
 
-                                            {{ $detalle
-                                                ->producto
-                                                ->nombre }}
+                                            <div class="fw-semibold">
+                                                {{ $detalle
+                                                    ->producto
+                                                    ->nombre }}
+                                            </div>
 
                                             <small class="text-muted">
+                                                {{ (float) $detalle->cantidad }}
                                                 ×
-                                                {{ (float)
-                                                    $detalle->cantidad }}
+                                                ${{ number_format(
+                                                    $detalle->costo_unitario,
+                                                    0,
+                                                    ',',
+                                                    '.'
+                                                ) }}
+                                                =
+                                                <span class="fw-semibold">
+                                                    ${{ number_format(
+                                                        $detalle->subtotal,
+                                                        0,
+                                                        ',',
+                                                        '.'
+                                                    ) }}
+                                                </span>
                                             </small>
 
                                         </div>

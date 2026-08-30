@@ -48,6 +48,14 @@
 
     @endif
 
+    @if(session('error'))
+
+        <div class="alert alert-danger" role="alert">
+            {{ session('error') }}
+        </div>
+
+    @endif
+
 
     <div class="row g-3 mb-4">
 
