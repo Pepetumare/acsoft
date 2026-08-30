@@ -30,7 +30,6 @@ class VentaController extends Controller
             ->orderByDesc('fecha')
             ->orderByDesc('id');
 
-
         if ($request->filled('desde')) {
 
             $query->whereDate(
@@ -39,7 +38,6 @@ class VentaController extends Controller
                 $request->input('desde')
             );
         }
-
 
         if ($request->filled('hasta')) {
 
@@ -50,11 +48,9 @@ class VentaController extends Controller
             );
         }
 
-
         $ventas = $query
             ->paginate(20)
             ->withQueryString();
-
 
         $totalHoy = $negocio
             ->ventas()
@@ -63,7 +59,6 @@ class VentaController extends Controller
                 now()->toDateString()
             )
             ->sum('total');
-
 
         return view(
             'gestion.ventas.index',
@@ -75,7 +70,6 @@ class VentaController extends Controller
         );
     }
 
-
     public function create(
         Negocio $negocio
     ): View {
@@ -83,13 +77,10 @@ class VentaController extends Controller
         $usaProductos =
             $negocio->tieneModulo('productos');
 
-
         $usaStock =
             $negocio->tieneModulo('stock');
 
-
         $productos = collect();
-
 
         if ($usaProductos) {
 
@@ -102,7 +93,6 @@ class VentaController extends Controller
 
         }
 
-
         return view(
             'gestion.ventas.create',
             compact(
@@ -113,7 +103,6 @@ class VentaController extends Controller
             )
         );
     }
-
 
     public function store(
         Request $request,
@@ -126,6 +115,8 @@ class VentaController extends Controller
         $usaStock =
             $negocio->tieneModulo('stock');
 
+        $usaCaja =
+            $negocio->tieneModulo('caja');
 
         $rules = [
             'fecha' => [
@@ -162,6 +153,11 @@ class VentaController extends Controller
                 'required',
                 'numeric',
                 'min:0.001',
+                function (string $attribute, mixed $value, $fail) {
+                    if (! preg_match('/^\d+(?:\.\d{1,3})?$/', (string) $value)) {
+                        $fail('La cantidad puede tener como máximo 3 decimales.');
+                    }
+                },
             ],
 
             'detalles.*.precio_unitario' => [
@@ -176,7 +172,6 @@ class VentaController extends Controller
             ],
         ];
 
-
         if ($usaProductos) {
 
             $rules['detalles.*.producto_id'] = [
@@ -187,8 +182,7 @@ class VentaController extends Controller
                     'productos',
                     'id'
                 )->where(
-                    fn($query) =>
-                    $query->where(
+                    fn ($query) => $query->where(
                         'negocio_id',
                         $negocio->id
                     )
@@ -196,13 +190,11 @@ class VentaController extends Controller
             ];
         }
 
-
         $validated =
             $request->validate($rules);
 
-
         $cantidadesPorProducto = collect($validated['detalles'])
-            ->filter(fn (array $detalle) => !empty($detalle['producto_id']))
+            ->filter(fn (array $detalle) => ! empty($detalle['producto_id']))
             ->groupBy(fn (array $detalle) => (int) $detalle['producto_id'])
             ->map(fn ($detalles) => $detalles->sum(
                 fn (array $detalle) => (float) $detalle['cantidad']
@@ -214,8 +206,29 @@ class VentaController extends Controller
             $negocio,
             $usaProductos,
             $usaStock,
+            $usaCaja,
             $cantidadesPorProducto
         ) {
+            $caja = null;
+
+            if (
+                ($validated['metodo_pago'] ?? null) === 'Efectivo'
+                && $usaCaja
+            ) {
+                $caja = $negocio
+                    ->cajas()
+                    ->where('estado', 'abierta')
+                    ->latest('id')
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $caja) {
+                    throw ValidationException::withMessages([
+                        'metodo_pago' => 'Debe existir una caja abierta para registrar una venta en efectivo.',
+                    ]);
+                }
+            }
+
             $productos = collect();
 
             if ($usaProductos && $cantidadesPorProducto->isNotEmpty()) {
@@ -236,6 +249,25 @@ class VentaController extends Controller
                     throw ValidationException::withMessages([
                         'detalles' => 'Uno de los productos no pertenece al negocio.',
                     ]);
+                }
+
+                foreach ($validated['detalles'] as $indice => $detalle) {
+                    if (empty($detalle['producto_id'])) {
+                        continue;
+                    }
+
+                    $producto = $productos->get((int) $detalle['producto_id']);
+                    $cantidad = (float) $detalle['cantidad'];
+
+                    if (
+                        $producto->requiereCantidadEntera()
+                        && $cantidad !== floor($cantidad)
+                    ) {
+                        throw ValidationException::withMessages([
+                            "detalles.$indice.cantidad" => 'La cantidad para productos medidos en '
+                                .$producto->unidad.' debe ser un número entero mayor o igual a 1.',
+                        ]);
+                    }
                 }
 
                 if ($usaStock) {
@@ -275,7 +307,7 @@ class VentaController extends Controller
             foreach ($validated['detalles'] as $detalle) {
                 $producto = null;
 
-                if ($usaProductos && !empty($detalle['producto_id'])) {
+                if ($usaProductos && ! empty($detalle['producto_id'])) {
                     $producto = $productos->get((int) $detalle['producto_id']);
                 }
 
@@ -311,25 +343,16 @@ class VentaController extends Controller
                 'total' => round($total, 2),
             ]);
 
-            if ($venta->metodo_pago === 'Efectivo') {
-                $caja = $negocio
-                    ->cajas()
-                    ->where('estado', 'abierta')
-                    ->latest('id')
-                    ->lockForUpdate()
-                    ->first();
-
-                if ($caja) {
-                    $caja->movimientos()->create([
-                        'user_id' => $request->user()->id,
-                        'tipo' => 'ingreso',
-                        'concepto' => 'Venta #'.$venta->id,
-                        'monto' => $venta->total,
-                        'observacion' => 'Movimiento automático por venta en efectivo.',
-                        'origen_tipo' => 'venta',
-                        'origen_id' => $venta->id,
-                    ]);
-                }
+            if ($caja) {
+                $caja->movimientos()->create([
+                    'user_id' => $request->user()->id,
+                    'tipo' => 'ingreso',
+                    'concepto' => 'Venta #'.$venta->id,
+                    'monto' => $venta->total,
+                    'observacion' => 'Movimiento automático por venta en efectivo.',
+                    'origen_tipo' => 'venta',
+                    'origen_id' => $venta->id,
+                ]);
             }
         });
 
@@ -344,7 +367,6 @@ class VentaController extends Controller
             );
     }
 
-
     public function destroy(
         Negocio $negocio,
         Venta $venta
@@ -355,7 +377,6 @@ class VentaController extends Controller
                 === $negocio->id,
             404
         );
-
 
         $eliminada = DB::transaction(function () use ($negocio, $venta) {
             $movimientoCaja = CajaMovimiento::query()
@@ -374,7 +395,7 @@ class VentaController extends Controller
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                if (!$caja->estaAbierta()) {
+                if (! $caja->estaAbierta()) {
                     return false;
                 }
             }
@@ -391,7 +412,7 @@ class VentaController extends Controller
             return true;
         });
 
-        if (!$eliminada) {
+        if (! $eliminada) {
             return back()->with(
                 'error',
                 'No se puede eliminar la venta porque pertenece a una caja cerrada.'

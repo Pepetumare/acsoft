@@ -9,6 +9,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Producto extends Model
 {
+    public const UNIDADES_DISCRETAS = [
+        'unidad',
+        'caja',
+        'paquete',
+    ];
+
     protected $fillable = [
         'negocio_id',
         'nombre',
@@ -66,6 +72,15 @@ class Producto extends Model
             WHEN tipo = 'ajuste' THEN cantidad
             ELSE 0
         END), 0)";
+    }
+
+    public function requiereCantidadEntera(): bool
+    {
+        return in_array(
+            strtolower(trim($this->unidad)),
+            self::UNIDADES_DISCRETAS,
+            true
+        );
     }
 
     public function detallesVenta(): HasMany

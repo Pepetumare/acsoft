@@ -116,6 +116,11 @@ class CompraController extends Controller
                 'required',
                 'numeric',
                 'min:0.001',
+                function (string $attribute, mixed $value, $fail) {
+                    if (! preg_match('/^\d+(?:\.\d{1,3})?$/', (string) $value)) {
+                        $fail('La cantidad puede tener como máximo 3 decimales.');
+                    }
+                },
             ],
 
             'detalles.*.costo_unitario' => [
@@ -161,6 +166,21 @@ class CompraController extends Controller
                 throw ValidationException::withMessages([
                     'detalles' => 'Uno de los productos no pertenece al negocio.',
                 ]);
+            }
+
+            foreach ($validated['detalles'] as $indice => $detalle) {
+                $producto = $productos->get((int) $detalle['producto_id']);
+                $cantidad = (float) $detalle['cantidad'];
+
+                if (
+                    $producto->requiereCantidadEntera()
+                    && $cantidad !== floor($cantidad)
+                ) {
+                    throw ValidationException::withMessages([
+                        "detalles.$indice.cantidad" => 'La cantidad para productos medidos en '
+                            .$producto->unidad.' debe ser un número entero mayor o igual a 1.',
+                    ]);
+                }
             }
 
             $compra = $negocio->compras()->create([

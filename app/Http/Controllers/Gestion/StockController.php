@@ -71,6 +71,11 @@ class StockController extends Controller
                 'required',
                 'numeric',
                 'not_in:0',
+                function (string $attribute, mixed $value, $fail) {
+                    if (! preg_match('/^-?\d+(?:\.\d{1,3})?$/', (string) $value)) {
+                        $fail('La cantidad puede tener como máximo 3 decimales.');
+                    }
+                },
             ],
 
             'concepto' => [
@@ -104,6 +109,16 @@ class StockController extends Controller
                 ->whereKey($validated['producto_id'])
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            if (
+                $producto->requiereCantidadEntera()
+                && $cantidad !== floor($cantidad)
+            ) {
+                throw ValidationException::withMessages([
+                    'cantidad' => 'La cantidad para productos medidos en '
+                        .$producto->unidad.' debe ser un número entero.',
+                ]);
+            }
 
             if (
                 $validated['tipo'] === 'salida'

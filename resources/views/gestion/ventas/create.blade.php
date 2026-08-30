@@ -72,7 +72,8 @@
                                 Método de pago
                             </label>
 
-                            <select id="metodo_pago" name="metodo_pago" class="form-select">
+                            <select id="metodo_pago" name="metodo_pago"
+                                class="form-select @error('metodo_pago') is-invalid @enderror">
 
                                 <option value="">
                                     Sin especificar
@@ -85,6 +86,12 @@
                                 @endforeach
 
                             </select>
+
+                            @error('metodo_pago')
+                                <div class="invalid-feedback">
+                                    {{ $message }}
+                                </div>
+                            @enderror
 
                         </div>
 
@@ -119,7 +126,19 @@
                     @endif
 
 
+                    @php
+                        $detallesAnteriores = old('detalles', [[
+                            'producto_id' => '',
+                            'descripcion' => '',
+                            'cantidad' => 1,
+                            'precio_unitario' => '',
+                        ]]);
+                        $siguienteIndiceDetalle = max(array_keys($detallesAnteriores)) + 1;
+                    @endphp
+
                     <div id="detalles">
+
+                        @foreach ($detallesAnteriores as $indiceDetalle => $detalleAnterior)
 
                         <div class="venta-detalle-row
                         row g-2 align-items-end mb-3">
@@ -132,7 +151,8 @@
                                         Producto
                                     </label>
 
-                                    <select name="detalles[0][producto_id]" class="form-select venta-producto">
+                                    <select name="detalles[{{ $indiceDetalle }}][producto_id]"
+                                        class="form-select venta-producto">
 
                                         <option value="">
                                             Venta manual
@@ -140,7 +160,9 @@
 
                                         @foreach ($productos as $producto)
                                             <option value="{{ $producto->id }}" data-nombre="{{ $producto->nombre }}"
-                                                data-precio="{{ $producto->precio_venta ?? 0 }}">
+                                                data-precio="{{ $producto->precio_venta ?? 0 }}"
+                                                data-unidad="{{ strtolower(trim($producto->unidad)) }}"
+                                                @selected((string) ($detalleAnterior['producto_id'] ?? '') === (string) $producto->id)>
                                                 {{ $producto->nombre }}
 
                                                 @if ($usaStock)
@@ -165,8 +187,9 @@
                                     Descripción
                                 </label>
 
-                                <input type="text" name="detalles[0][descripcion]" class="form-control venta-descripcion"
-                                    required>
+                                <input type="text" name="detalles[{{ $indiceDetalle }}][descripcion]"
+                                    value="{{ $detalleAnterior['descripcion'] ?? '' }}"
+                                    class="form-control venta-descripcion" required>
 
                             </div>
 
@@ -177,8 +200,9 @@
                                     Cantidad
                                 </label>
 
-                                <input type="number" name="detalles[0][cantidad]" class="form-control venta-cantidad"
-                                    min="0.001" step="0.001" value="1" required>
+                                <input type="number" name="detalles[{{ $indiceDetalle }}][cantidad]"
+                                    class="form-control venta-cantidad" min="0.001" step="0.001"
+                                    value="{{ $detalleAnterior['cantidad'] ?? 1 }}" required>
 
                             </div>
 
@@ -189,8 +213,9 @@
                                     Precio unitario
                                 </label>
 
-                                <input type="number" name="detalles[0][precio_unitario]" class="form-control venta-precio"
-                                    min="0" step="1" required>
+                                <input type="number" name="detalles[{{ $indiceDetalle }}][precio_unitario]"
+                                    class="form-control venta-precio" min="0" step="1"
+                                    value="{{ $detalleAnterior['precio_unitario'] ?? '' }}" required>
 
                             </div>
 
@@ -207,6 +232,8 @@
                             </div>
 
                         </div>
+
+                        @endforeach
 
                     </div>
 
@@ -284,7 +311,7 @@
             const usaProductos =
                 @json($usaProductos);
 
-            let indice = 1;
+            let indice = @json($siguienteIndiceDetalle);
 
 
             const opcionesProductos = `
@@ -298,6 +325,7 @@
                 value="{{ $producto->id }}"
                 data-nombre="{{ addslashes($producto->nombre) }}"
                 data-precio="{{ $producto->precio_venta ?? 0 }}"
+                data-unidad="{{ strtolower(trim($producto->unidad)) }}"
             >
                 {{ addslashes($producto->nombre) }}
 
@@ -370,6 +398,11 @@
                         '.venta-precio'
                     );
 
+                const cantidad =
+                    fila.querySelector(
+                        '.venta-cantidad'
+                    );
+
                 const opcion =
                     select.options[
                         select.selectedIndex
@@ -377,6 +410,10 @@
 
 
                 if (!select.value) {
+
+                    cantidad.step = '0.001';
+
+                    cantidad.min = '0.001';
 
                     descripcion.value = '';
 
@@ -386,6 +423,21 @@
 
                     return;
                 }
+
+                const unidadesDiscretas = [
+                    'unidad',
+                    'caja',
+                    'paquete'
+                ];
+
+                const cantidadEntera =
+                    unidadesDiscretas.includes(
+                        opcion.dataset.unidad
+                    );
+
+                cantidad.step = cantidadEntera ? '1' : '0.001';
+
+                cantidad.min = cantidadEntera ? '1' : '0.001';
 
 
                 descripcion.value =
@@ -541,6 +593,19 @@
                     }
                 }
             );
+
+            contenedor
+                .querySelectorAll('.venta-producto')
+                .forEach(select => {
+                    const fila = select.closest('.venta-detalle-row');
+                    const opcion = select.options[select.selectedIndex];
+                    const cantidad = fila.querySelector('.venta-cantidad');
+                    const cantidadEntera = ['unidad', 'caja', 'paquete']
+                        .includes(opcion?.dataset.unidad);
+
+                    cantidad.step = cantidadEntera ? '1' : '0.001';
+                    cantidad.min = cantidadEntera ? '1' : '0.001';
+                });
 
 
             contenedor.addEventListener(

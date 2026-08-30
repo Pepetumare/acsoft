@@ -109,6 +109,7 @@
 
                                 <option
                                     value="{{ $producto->id }}"
+                                    data-unidad="{{ strtolower(trim($producto->unidad)) }}"
                                     @selected(
                                         old('producto_id')
                                         == $producto->id
@@ -357,5 +358,25 @@
     </div>
 
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const producto = document.getElementById('producto_id');
+    const cantidad = document.getElementById('cantidad');
+
+    function actualizarPasoCantidad() {
+        const opcion = producto.options[producto.selectedIndex];
+        const cantidadEntera = ['unidad', 'caja', 'paquete']
+            .includes(opcion?.dataset.unidad);
+
+        cantidad.step = cantidadEntera ? '1' : '0.001';
+    }
+
+    producto.addEventListener('change', actualizarPasoCantidad);
+    actualizarPasoCantidad();
+});
+</script>
+@endpush
 
 @endsection

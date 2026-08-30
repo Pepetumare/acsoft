@@ -129,6 +129,7 @@
 
                                     <option
                                         value="{{ $producto->id }}"
+                                        data-unidad="{{ strtolower(trim($producto->unidad)) }}"
                                     >
                                         {{ $producto->nombre }}
                                     </option>
@@ -295,7 +296,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const opcionesProductos = `
         @foreach($productos as $producto)
-            <option value="{{ $producto->id }}">
+            <option value="{{ $producto->id }}"
+                data-unidad="{{ strtolower(trim($producto->unidad)) }}">
                 {{ addslashes($producto->nombre) }}
             </option>
         @endforeach
@@ -332,6 +334,19 @@ document.addEventListener('DOMContentLoaded', () => {
         total.textContent =
             '$' + Math.round(valor)
                 .toLocaleString('es-CL');
+    }
+
+
+    function actualizarPasoCantidad(select) {
+
+        const fila = select.closest('.compra-detalle-row');
+        const cantidad = fila.querySelector('.compra-cantidad');
+        const opcion = select.options[select.selectedIndex];
+        const cantidadEntera = ['unidad', 'caja', 'paquete']
+            .includes(opcion?.dataset.unidad);
+
+        cantidad.step = cantidadEntera ? '1' : '0.001';
+        cantidad.min = cantidadEntera ? '1' : '0.001';
     }
 
 
@@ -419,6 +434,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         indice++;
     });
+
+
+    contenedor.addEventListener(
+        'change',
+        event => {
+            if (event.target.matches('select[name$="[producto_id]"]')) {
+                actualizarPasoCantidad(event.target);
+            }
+        }
+    );
 
 
     contenedor.addEventListener(
