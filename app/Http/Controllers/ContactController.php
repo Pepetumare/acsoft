@@ -22,7 +22,7 @@ class ContactController extends Controller
 
         if ($request->filled('website')) {
             return redirect()
-                ->route('contact')
+                ->route('contacto')
                 ->with(
                     'contact_success',
                     'Tu consulta fue enviada correctamente.'
@@ -119,7 +119,7 @@ class ContactController extends Controller
 
 
         return redirect()
-            ->route('contact')
+            ->route('contacto')
             ->with(
                 'contact_success',
                 'Tu consulta fue enviada correctamente. Te contactaré a la brevedad.'

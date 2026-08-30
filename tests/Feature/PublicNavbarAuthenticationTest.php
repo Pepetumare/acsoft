@@ -64,7 +64,7 @@ class PublicNavbarAuthenticationTest extends TestCase
         $user = User::factory()->create(['is_superadmin' => false]);
 
         $response = $this->actingAs($user)
-            ->get(route('contact'))
+            ->get(route('contacto'))
             ->assertOk();
 
         $this->assertDashboardLink($response, route('account.no-business'));

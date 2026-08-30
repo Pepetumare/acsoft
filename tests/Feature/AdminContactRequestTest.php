@@ -22,7 +22,7 @@ class AdminContactRequestTest extends TestCase
             'email' => 'ana@example.com',
             'phone' => '+56 9 1234 5678',
             'message' => 'Quiero probar ventas, caja y control de stock.',
-        ])->assertRedirect(route('contact'));
+        ])->assertRedirect(route('contacto'));
 
         $this->assertDatabaseHas('contact_requests', [
             'name' => 'Ana Pérez',

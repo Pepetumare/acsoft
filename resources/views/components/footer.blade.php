@@ -35,7 +35,7 @@
                     </li>
 
                     <li>
-                        <a href="{{ route('contact') }}">Contacto</a>
+                        <a href="{{ route('contacto') }}">Contacto</a>
                     </li>
                     <li><a href="{{ route('login') }}">Iniciar sesión</a></li>
                 </ul>
@@ -62,7 +62,7 @@
                     Solicita una demostración y te prepararemos un acceso temporal con un negocio de prueba.
                 </p>
 
-                <a href="{{ route('contact') }}" class="btn btn-outline-light">
+                <a href="{{ route('contacto') }}" class="btn btn-outline-light">
                     Solicitar demostración
                 </a>
 

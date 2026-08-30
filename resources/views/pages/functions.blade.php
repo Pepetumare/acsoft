@@ -25,5 +25,5 @@ $modules = [
     <article class="showcase-card"><div><span>02</span><h3>Stock visible</h3><p>Consulta existencias y movimientos con rapidez.</p></div><div class="shot-placeholder"><span>Vista de stock</span><div class="shot-bars"><i></i><i></i><i></i></div></div></article>
     <article class="showcase-card"><div><span>03</span><h3>Operación resumida</h3><p>Revisa los datos importantes en un solo panel.</p></div><div class="shot-placeholder"><span>Panel general</span><div class="shot-metrics"><i></i><i></i><i></i></div></div></article>
 </div></div></section>
-<section class="public-inline-cta"><div class="container text-center"><span class="demo-pill">Demostración por 5 días</span><h2>¿Quieres verlo aplicado a tu negocio?</h2><p>Prepararemos un usuario temporal con un negocio de prueba.</p><a href="{{ route('contact') }}" class="btn btn-acsoft-primary btn-lg">Solicitar demostración</a></div></section>
+<section class="public-inline-cta"><div class="container text-center"><span class="demo-pill">Demostración por 5 días</span><h2>¿Quieres verlo aplicado a tu negocio?</h2><p>Prepararemos un usuario temporal con un negocio de prueba.</p><a href="{{ route('contacto') }}" class="btn btn-acsoft-primary btn-lg">Solicitar demostración</a></div></section>
 @endsection
