@@ -38,7 +38,25 @@
 
         @if (session('success'))
             <div class="alert alert-success">
-                {{ session('success') }}
+                <div>{{ session('success') }}</div>
+
+                @if (session('venta_creada_id'))
+                    <div class="d-flex flex-wrap gap-2 mt-3">
+                        <a
+                            href="{{ route('gestion.ventas.receipt', [$negocio, session('venta_creada_id')]) }}"
+                            class="btn btn-sm btn-acsoft-primary"
+                        >
+                            Ver boleta
+                        </a>
+
+                        <a
+                            href="{{ route('gestion.ventas.index', $negocio) }}"
+                            class="btn btn-sm btn-outline-success"
+                        >
+                            Volver a ventas
+                        </a>
+                    </div>
+                @endif
             </div>
         @endif
 
@@ -223,6 +241,13 @@
 
 
                                     <td class="text-end">
+
+                                        <a
+                                            href="{{ route('gestion.ventas.receipt', [$negocio, $venta]) }}"
+                                            class="btn btn-sm btn-outline-primary"
+                                        >
+                                            Boleta
+                                        </a>
 
                                         <form
                                             action="{{ route('gestion.ventas.destroy', [$negocio, $venta]) }}"

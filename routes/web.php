@@ -26,6 +26,7 @@ use App\Http\Controllers\Gestion\CajaController;
 use App\Http\Controllers\Gestion\ProductoController as ProductoControllerGestion;
 use App\Http\Controllers\Gestion\StockController;
 use App\Http\Controllers\Gestion\CompraController;
+use App\Http\Controllers\Gestion\PersonalizacionController;
 
 
 
@@ -181,6 +182,24 @@ Route::middleware('auth')
             ->middleware('tenant.business')
             ->name('gestion.dashboard');
 
+        Route::prefix('gestion/{negocio}/personalizacion')
+            ->name('gestion.personalizacion.')
+            ->middleware([
+                'auth',
+                'tenant.business',
+                'business.role:admin',
+            ])
+            ->group(function () {
+                Route::get('/', [PersonalizacionController::class, 'edit'])
+                    ->name('edit');
+                Route::patch('/', [PersonalizacionController::class, 'update'])
+                    ->name('update');
+                Route::delete('/colores', [PersonalizacionController::class, 'resetColors'])
+                    ->name('colors.destroy');
+                Route::delete('/logo', [PersonalizacionController::class, 'destroyLogo'])
+                    ->name('logo.destroy');
+            });
+
         // Route::get(
         //     '/gestion/{negocio}/ventas',
         //     [ModuloPlaceholderController::class, 'ventas']
@@ -211,6 +230,11 @@ Route::middleware('auth')
                     '/',
                     [VentaController::class, 'store']
                 )->name('store');
+
+                Route::get(
+                    '/{venta}/boleta',
+                    [VentaController::class, 'receipt']
+                )->name('receipt');
 
                 Route::delete(
                     '/{venta}',

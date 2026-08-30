@@ -53,6 +53,7 @@
         <div class="contact-form-card">
 
             <form
+                id="expense-create-form"
                 action="{{ route(
                     'gestion.gastos.store',
                     $negocio
@@ -61,6 +62,12 @@
             >
 
                 @csrf
+
+                <input
+                    type="hidden"
+                    name="operation_token"
+                    value="{{ old('operation_token', (string) \Illuminate\Support\Str::uuid()) }}"
+                >
 
 
                 <div class="row g-3">
@@ -285,6 +292,7 @@
 
                     <button
                         type="submit"
+                        id="expense-submit-button"
                         class="btn btn-acsoft-primary"
                     >
                         Registrar gasto
@@ -301,3 +309,44 @@
 </div>
 
 @endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('expense-create-form');
+        const submitButton = document.getElementById('expense-submit-button');
+
+        if (!form || !submitButton) {
+            return;
+        }
+
+        const originalText = submitButton.textContent;
+
+        const enableSubmit = () => {
+            delete form.dataset.submitting;
+            submitButton.disabled = false;
+            submitButton.textContent = originalText;
+        };
+
+        form.addEventListener('invalid', enableSubmit, true);
+
+        form.addEventListener('submit', (event) => {
+            if (!form.checkValidity()) {
+                enableSubmit();
+                return;
+            }
+
+            if (form.dataset.submitting === 'true') {
+                event.preventDefault();
+                return;
+            }
+
+            form.dataset.submitting = 'true';
+            submitButton.disabled = true;
+            submitButton.textContent = 'Guardando...';
+        });
+
+        window.addEventListener('pageshow', enableSubmit);
+    });
+</script>
+@endpush

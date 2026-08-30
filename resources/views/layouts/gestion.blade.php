@@ -27,6 +27,15 @@
         'resources/css/app.css',
         'resources/js/app.js'
     ])
+
+    <style>
+        .gestion-app {
+            --business-primary: {{ $negocio->colorPrimario() }};
+            --business-secondary: {{ $negocio->colorSecundario() }};
+            --business-primary-contrast: {{ $negocio->contrastePara($negocio->colorPrimario()) }};
+            --business-secondary-contrast: {{ $negocio->contrastePara($negocio->colorSecundario()) }};
+        }
+    </style>
 </head>
 
 <body class="gestion-app">
@@ -91,6 +100,15 @@
 
         <aside class="gestion-sidebar">
 
+            <div class="gestion-business-identity">
+                @if ($negocio->logoUrl())
+                    <img src="{{ $negocio->logoUrl() }}" alt="Logo de {{ $negocio->nombre }}">
+                @else
+                    <span>{{ mb_strtoupper(mb_substr($negocio->nombre, 0, 1)) }}</span>
+                @endif
+                <strong>{{ $negocio->nombre }}</strong>
+            </div>
+
             <nav>
 
                 <a
@@ -144,6 +162,15 @@
                     @endif
 
                 @endforeach
+
+                @if (auth()->user()->canManageBusiness($negocio))
+                    <a
+                        href="{{ route('gestion.personalizacion.edit', $negocio) }}"
+                        class="gestion-nav-link {{ request()->routeIs('gestion.personalizacion.*') ? 'active' : '' }}"
+                    >
+                        Personalización
+                    </a>
+                @endif
 
             </nav>
 

@@ -118,6 +118,11 @@ class GastoController extends Controller
                 'string',
                 'max:1000',
             ],
+
+            'operation_token' => [
+                'required',
+                'uuid',
+            ],
         ]);
 
 
@@ -129,6 +134,14 @@ class GastoController extends Controller
             $negocio,
             $usaCaja
         ) {
+            $gastoExistente = $negocio->gastos()
+                ->where('operation_token', $validated['operation_token'])
+                ->first();
+
+            if ($gastoExistente) {
+                return true;
+            }
+
             $caja = null;
 
             if (($validated['metodo_pago'] ?? null) === 'Efectivo' && $usaCaja) {
@@ -144,7 +157,9 @@ class GastoController extends Controller
                 }
             }
 
-            $gasto = $negocio->gastos()->create([
+            $gasto = $negocio->gastos()->createOrFirst([
+                'operation_token' => $validated['operation_token'],
+            ], [
                 'user_id' => $request->user()->id,
                 'fecha' => $validated['fecha'],
                 'concepto' => $validated['concepto'],
@@ -154,7 +169,7 @@ class GastoController extends Controller
                 'observacion' => $validated['observacion'] ?? null,
             ]);
 
-            if ($caja) {
+            if ($caja && $gasto->wasRecentlyCreated) {
                 $caja->movimientos()->create([
                     'user_id' => $request->user()->id,
                     'tipo' => 'egreso',

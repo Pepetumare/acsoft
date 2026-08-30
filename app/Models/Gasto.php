@@ -16,6 +16,7 @@ class Gasto extends Model
         'categoria',
         'metodo_pago',
         'observacion',
+        'operation_token',
     ];
 
     protected $casts = [

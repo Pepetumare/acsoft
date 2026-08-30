@@ -89,4 +89,17 @@ class User extends Authenticatable
 
         return route('business.select');
     }
+
+    public function canManageBusiness(Negocio $negocio): bool
+    {
+        if ($this->is_superadmin) {
+            return true;
+        }
+
+        return $this->negocios()
+            ->where('negocios.id', $negocio->id)
+            ->wherePivot('activo', true)
+            ->wherePivot('rol', 'admin')
+            ->exists();
+    }
 }

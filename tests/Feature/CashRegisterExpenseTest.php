@@ -10,8 +10,10 @@ use App\Models\Modulo;
 use App\Models\Negocio;
 use App\Models\User;
 use App\Models\Venta;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -158,6 +160,71 @@ class CashRegisterExpenseTest extends TestCase
             'origen_tipo' => 'gasto',
             'origen_id' => $expense->id,
         ]);
+        $this->assertDatabaseCount('gastos', 1);
+        $this->assertDatabaseCount('caja_movimientos', 1);
+    }
+
+    public function test_reenvio_del_mismo_token_no_duplica_gasto_ni_movimiento(): void
+    {
+        $this->createOpenCashRegister();
+        $data = $this->expenseData((string) Str::uuid());
+
+        $this->postExpense($data)->assertRedirect(
+            route('gestion.gastos.index', $this->business)
+        );
+        $this->postExpense($data)->assertRedirect(
+            route('gestion.gastos.index', $this->business)
+        );
+
+        $this->assertDatabaseCount('gastos', 1);
+        $this->assertDatabaseCount('caja_movimientos', 1);
+
+        $expense = Gasto::firstOrFail();
+        $this->assertSame($data['operation_token'], $expense->operation_token);
+        $this->assertSame(1, CajaMovimiento::query()
+            ->where('origen_tipo', 'gasto')
+            ->where('origen_id', $expense->id)
+            ->count());
+    }
+
+    public function test_nuevo_token_permite_otro_gasto_del_mismo_monto(): void
+    {
+        $this->createOpenCashRegister();
+
+        $this->postExpense($this->expenseData((string) Str::uuid()));
+        $this->postExpense($this->expenseData((string) Str::uuid()));
+
+        $this->assertDatabaseCount('gastos', 2);
+        $this->assertDatabaseCount('caja_movimientos', 2);
+        $this->assertSame(2, Gasto::query()->where('monto', 2500)->count());
+    }
+
+    public function test_base_de_datos_impide_dos_movimientos_para_el_mismo_gasto(): void
+    {
+        $cashRegister = $this->createOpenCashRegister();
+        $expense = $this->createExpenseWithCashMovement($cashRegister);
+
+        $this->expectException(UniqueConstraintViolationException::class);
+
+        $cashRegister->movimientos()->create([
+            'user_id' => $this->user->id,
+            'tipo' => 'egreso',
+            'concepto' => 'Movimiento duplicado',
+            'monto' => $expense->monto,
+            'origen_tipo' => 'gasto',
+            'origen_id' => $expense->id,
+        ]);
+    }
+
+    public function test_formulario_incluye_token_y_bloqueo_de_doble_envio(): void
+    {
+        $this->actingAs($this->user)
+            ->get(route('gestion.gastos.create', $this->business))
+            ->assertOk()
+            ->assertSee('name="operation_token"', false)
+            ->assertSee('id="expense-submit-button"', false)
+            ->assertSee("submitButton.disabled = true", false)
+            ->assertSee('Guardando...', false);
     }
 
     public function test_caja_abierta_de_otro_negocio_no_sirve_para_el_negocio_actual(): void
@@ -202,9 +269,10 @@ class CashRegisterExpenseTest extends TestCase
 
     public function test_gasto_rechazado_conserva_todos_los_valores_ingresados(): void
     {
-        $response = $this->postExpense();
+        $data = $this->expenseData();
+        $response = $this->postExpense($data);
 
-        foreach ($this->expenseData() as $field => $value) {
+        foreach ($data as $field => $value) {
             $response->assertSessionHasInput($field, $value);
         }
     }
@@ -399,17 +467,17 @@ class CashRegisterExpenseTest extends TestCase
         ]);
     }
 
-    private function postExpense()
+    private function postExpense(?array $data = null)
     {
         return $this->actingAs($this->user)
             ->from(route('gestion.gastos.create', $this->business))
             ->post(
                 route('gestion.gastos.store', $this->business),
-                $this->expenseData()
+                $data ?? $this->expenseData()
             );
     }
 
-    private function expenseData(): array
+    private function expenseData(?string $operationToken = null): array
     {
         return [
             'fecha' => now()->toDateString(),
@@ -418,6 +486,7 @@ class CashRegisterExpenseTest extends TestCase
             'categoria' => 'Insumos',
             'metodo_pago' => 'Efectivo',
             'observacion' => 'Compra operativa',
+            'operation_token' => $operationToken ?? (string) Str::uuid(),
         ];
     }
 

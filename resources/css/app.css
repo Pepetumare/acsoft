@@ -5630,9 +5630,9 @@ input:checked
 
     z-index: 1000;
 
-    background: var(--acsoft-primary);
+    background: var(--business-primary, var(--acsoft-primary));
 
-    color: white;
+    color: var(--business-primary-contrast, white);
 }
 
 .gestion-topbar-inner {
@@ -5653,7 +5653,7 @@ input:checked
 
     gap: .15rem;
 
-    color: white;
+    color: var(--business-primary-contrast, white);
 
     font-size: 1.3rem;
 
@@ -5664,6 +5664,10 @@ input:checked
 
 .gestion-brand > span {
     color: var(--acsoft-accent);
+}
+
+.gestion-app .gestion-brand > span {
+    color: var(--business-primary-contrast, white);
 }
 
 .gestion-brand small {
@@ -5680,6 +5684,13 @@ input:checked
     font-size: .55rem;
 }
 
+.gestion-app .gestion-brand small {
+    background: transparent;
+    border: 1px solid currentColor;
+    color: var(--business-primary-contrast, white);
+    opacity: .78;
+}
+
 .gestion-topbar-user {
     display: flex;
 
@@ -5691,7 +5702,7 @@ input:checked
 .gestion-topbar-user strong {
     display: block;
 
-    color: white;
+    color: var(--business-primary-contrast, white);
 
     font-size: .8rem;
 }
@@ -5699,9 +5710,22 @@ input:checked
 .gestion-topbar-user span {
     display: block;
 
-    color: rgba(255,255,255,.55);
+    color: var(--business-primary-contrast, white);
+
+    opacity: .65;
 
     font-size: .68rem;
+}
+
+.gestion-app .gestion-topbar .btn-outline-light {
+    border-color: var(--business-primary-contrast, white);
+    color: var(--business-primary-contrast, white);
+}
+
+.gestion-app .gestion-topbar .btn-outline-light:hover,
+.gestion-app .gestion-topbar .btn-outline-light:focus {
+    background: var(--business-primary-contrast, white);
+    color: var(--business-primary, var(--acsoft-primary));
 }
 
 
@@ -5721,6 +5745,47 @@ input:checked
     background: white;
 
     border-right: 1px solid var(--acsoft-border);
+}
+
+.gestion-business-identity {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    min-width: 0;
+    margin-bottom: 1rem;
+    padding: .75rem;
+    background: var(--business-secondary, var(--acsoft-secondary));
+    border-radius: 11px;
+    color: var(--business-secondary-contrast, white);
+}
+
+.gestion-business-identity img,
+.gestion-business-identity > span {
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+}
+
+.gestion-business-identity img {
+    background: white;
+    object-fit: contain;
+    padding: 3px;
+}
+
+.gestion-business-identity > span {
+    display: grid;
+    place-items: center;
+    background: rgba(255, 255, 255, .14);
+    font-weight: 800;
+}
+
+.gestion-business-identity strong {
+    min-width: 0;
+    overflow: hidden;
+    font-size: .82rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .gestion-sidebar nav {
@@ -5757,15 +5822,15 @@ input:checked
 }
 
 .gestion-nav-link:hover {
-    background: var(--acsoft-background);
+    background: var(--business-secondary, var(--acsoft-secondary));
 
-    color: var(--acsoft-primary);
+    color: var(--business-secondary-contrast, white);
 }
 
 .gestion-nav-link.active {
-    background: var(--acsoft-accent-light);
+    background: var(--business-primary, var(--acsoft-primary));
 
-    color: var(--acsoft-accent);
+    color: var(--business-primary-contrast, white);
 }
 
 .gestion-nav-disabled {
@@ -5842,6 +5907,115 @@ input:checked
     color: var(--acsoft-accent);
 
     font-weight: 800;
+}
+
+.gestion-app .btn-acsoft-primary {
+    background: var(--business-primary);
+    border-color: var(--business-primary);
+    color: var(--business-primary-contrast);
+}
+
+.gestion-app .btn-acsoft-primary:hover,
+.gestion-app .btn-acsoft-primary:focus {
+    background: var(--business-secondary);
+    border-color: var(--business-secondary);
+    color: var(--business-secondary-contrast);
+}
+
+.gestion-app .section-eyebrow,
+.gestion-app .demo-back-link {
+    color: var(--business-primary);
+}
+
+.business-current-logo {
+    display: grid;
+    place-items: center;
+    min-height: 110px;
+    padding: 1rem;
+    background: var(--acsoft-background);
+    border: 1px dashed var(--acsoft-border);
+    border-radius: 12px;
+    color: var(--acsoft-muted);
+}
+
+.business-current-logo img {
+    width: 100%;
+    max-width: 240px;
+    height: 90px;
+    object-fit: contain;
+}
+
+.business-color-control {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr);
+    gap: .75rem;
+}
+
+.business-color-control input[type="color"] {
+    width: 56px;
+    height: 42px;
+    padding: 3px;
+    background: white;
+    border: 1px solid var(--acsoft-border);
+    border-radius: 8px;
+}
+
+.business-preview-card {
+    top: 84px;
+    padding: 1.25rem;
+    background: white;
+    border: 1px solid var(--acsoft-border);
+    border-radius: 16px;
+    box-shadow: 0 12px 35px rgba(15, 39, 68, .06);
+}
+
+.business-preview {
+    --preview-primary: var(--business-primary);
+    --preview-secondary: var(--business-secondary);
+    --preview-primary-contrast: var(--business-primary-contrast);
+    --preview-secondary-contrast: var(--business-secondary-contrast);
+    overflow: hidden;
+    border: 1px solid var(--acsoft-border);
+    border-radius: 13px;
+}
+
+.business-preview-header {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    padding: .8rem 1rem;
+    background: var(--preview-primary);
+    color: var(--preview-primary-contrast);
+}
+
+.business-preview-logo {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    overflow: hidden;
+    background: white;
+    border-radius: 8px;
+}
+
+.business-preview-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.business-preview-logo span { color: var(--preview-primary); font-weight: 800; }
+.business-preview-body { display: grid; grid-template-columns: 125px 1fr; min-height: 225px; }
+.business-preview-body nav { display: flex; flex-direction: column; gap: .35rem; padding: .75rem; background: #fff; }
+.business-preview-body nav a { padding: .55rem .6rem; border-radius: 7px; color: #667587; font-size: .75rem; font-weight: 700; text-decoration: none; }
+.business-preview-body nav a.active { background: var(--preview-secondary); color: var(--preview-secondary-contrast); }
+.business-preview-content { display: flex; flex-direction: column; gap: .7rem; padding: 1rem; background: #f5f7fa; }
+.business-preview-content > div { height: 45px; background: white; border: 1px solid var(--acsoft-border); border-radius: 8px; }
+.business-preview-content button { align-self: flex-start; margin-top: auto; padding: .55rem .8rem; background: var(--preview-primary); border: 0; border-radius: 7px; color: var(--preview-primary-contrast); font-size: .75rem; font-weight: 700; }
+
+@media (max-width: 575px) {
+    .business-preview-body { grid-template-columns: 100px 1fr; }
+    .business-preview-card { padding: .85rem; }
 }
 
 .gestion-module-card h2 {

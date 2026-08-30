@@ -45,10 +45,17 @@
             <div class="contact-form-card">
 
                 <form
+                    id="sale-create-form"
                     action="{{ route('gestion.ventas.store', $negocio) }}"
                     method="POST">
 
                     @csrf
+
+                    <input
+                        type="hidden"
+                        name="operation_token"
+                        value="{{ old('operation_token', (string) \Illuminate\Support\Str::uuid()) }}"
+                    >
 
 
                     <div class="row g-3 mb-4">
@@ -278,7 +285,7 @@
                             Cancelar
                         </a>
 
-                        <button type="submit" class="btn btn-acsoft-primary">
+                        <button type="submit" id="sale-submit-button" class="btn btn-acsoft-primary">
                             Registrar venta
                         </button>
 
@@ -307,6 +314,12 @@
 
             const total =
                 document.getElementById('venta-total');
+
+            const form =
+                document.getElementById('sale-create-form');
+
+            const submitButton =
+                document.getElementById('sale-submit-button');
 
             const usaProductos =
                 @json($usaProductos);
@@ -651,6 +664,33 @@
                     calcularTotal();
                 }
             );
+
+            const originalSubmitText = submitButton.textContent;
+
+            const enableSubmit = () => {
+                delete form.dataset.submitting;
+                submitButton.disabled = false;
+                submitButton.textContent = originalSubmitText;
+            };
+
+            form.addEventListener('invalid', enableSubmit, true);
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    enableSubmit();
+                    return;
+                }
+
+                if (form.dataset.submitting === 'true') {
+                    event.preventDefault();
+                    return;
+                }
+
+                form.dataset.submitting = 'true';
+                submitButton.disabled = true;
+                submitButton.textContent = 'Guardando...';
+            });
+
+            window.addEventListener('pageshow', enableSubmit);
 
         });
     </script>

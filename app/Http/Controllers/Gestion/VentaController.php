@@ -7,6 +7,7 @@ use App\Models\CajaMovimiento;
 use App\Models\Negocio;
 use App\Models\Producto;
 use App\Models\Venta;
+use App\Models\VentaContador;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -136,6 +137,11 @@ class VentaController extends Controller
                 'max:1000',
             ],
 
+            'operation_token' => [
+                'required',
+                'uuid',
+            ],
+
             'detalles' => [
                 'required',
                 'array',
@@ -200,7 +206,7 @@ class VentaController extends Controller
                 fn (array $detalle) => (float) $detalle['cantidad']
             ));
 
-        DB::transaction(function () use (
+        $venta = DB::transaction(function () use (
             $validated,
             $request,
             $negocio,
@@ -209,6 +215,24 @@ class VentaController extends Controller
             $usaCaja,
             $cantidadesPorProducto
         ) {
+            VentaContador::query()->firstOrCreate(
+                ['negocio_id' => $negocio->id],
+                ['ultimo_numero' => 0]
+            );
+
+            $contador = VentaContador::query()
+                ->where('negocio_id', $negocio->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $ventaExistente = $negocio->ventas()
+                ->where('operation_token', $validated['operation_token'])
+                ->first();
+
+            if ($ventaExistente) {
+                return $ventaExistente;
+            }
+
             $caja = null;
 
             if (
@@ -294,11 +318,19 @@ class VentaController extends Controller
                 }
             }
 
+            $numeroDocumento = $contador->ultimo_numero + 1;
+
+            $contador->update([
+                'ultimo_numero' => $numeroDocumento,
+            ]);
+
             $venta = $negocio->ventas()->create([
                 'user_id' => $request->user()->id,
+                'numero_documento_interno' => $numeroDocumento,
                 'fecha' => $validated['fecha'],
                 'metodo_pago' => $validated['metodo_pago'] ?? null,
                 'observacion' => $validated['observacion'] ?? null,
+                'operation_token' => $validated['operation_token'],
                 'total' => 0,
             ]);
 
@@ -354,7 +386,9 @@ class VentaController extends Controller
                     'origen_id' => $venta->id,
                 ]);
             }
-        });
+
+            return $venta;
+        }, 3);
 
         return redirect()
             ->route(
@@ -364,7 +398,25 @@ class VentaController extends Controller
             ->with(
                 'success',
                 'Venta registrada correctamente.'
-            );
+            )
+            ->with('venta_creada_id', $venta->id);
+    }
+
+    public function receipt(
+        Negocio $negocio,
+        Venta $venta
+    ): View {
+        abort_unless($venta->negocio_id === $negocio->id, 403);
+
+        $venta->load([
+            'usuario',
+            'detalles.producto',
+        ]);
+
+        return view(
+            'gestion.ventas.receipt',
+            compact('negocio', 'venta')
+        );
     }
 
     public function destroy(

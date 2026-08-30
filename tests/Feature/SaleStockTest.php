@@ -10,6 +10,7 @@ use App\Models\StockMovimiento;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -420,6 +421,7 @@ class SaleStockTest extends TestCase
             [
                 'fecha' => now()->toDateString(),
                 'metodo_pago' => $paymentMethod,
+                'operation_token' => (string) Str::uuid(),
                 'detalles' => $details,
             ]
         );
