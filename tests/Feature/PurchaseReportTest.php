@@ -208,6 +208,26 @@ class PurchaseReportTest extends TestCase
         )->assertSessionHasErrors('hasta');
     }
 
+    public function test_pdf_se_genera_correctamente_con_periodo_valido(): void
+    {
+        $response = $this->actingAs($this->admin)->get(
+            route('gestion.reportes.pdf', [
+                'negocio' => $this->business,
+                'desde' => '2026-01-01',
+                'hasta' => '2026-01-31',
+            ])
+        );
+
+        $response
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf')
+            ->assertDownload(
+                'reporte-negocio-compras-2026-01-01-2026-01-31.pdf'
+            );
+
+        $this->assertStringStartsWith('%PDF-', $response->getContent());
+    }
+
     public function test_reporte_rechaza_hasta_anterior_a_desde(): void
     {
         $this->actingAs($this->admin)->get(
