@@ -119,6 +119,10 @@
                     Usuarios
                 </a>
 
+                <a href="{{ route('admin.solicitudes.index') }}" class="gestion-nav-link {{ request()->routeIs('admin.solicitudes.*') ? 'active' : '' }}">
+                    Solicitudes
+                </a>
+
             </nav>
 
         </aside>

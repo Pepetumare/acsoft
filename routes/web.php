@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\ClienteController;
 use App\Http\Controllers\Admin\NegocioController;
 use App\Http\Controllers\Admin\UsuarioController;
+use App\Http\Controllers\Admin\ContactRequestController as AdminContactRequestController;
 
 use App\Http\Controllers\Gestion\DashboardController as GestionDashboardController;
 use App\Http\Controllers\Gestion\ModuloPlaceholderController;
@@ -36,6 +37,25 @@ use App\Http\Controllers\Gestion\CompraController;
 
 Route::view('/', 'home.index')
     ->name('home');
+
+Route::get('/manifest.webmanifest', function () {
+    return response(file_get_contents(public_path('manifest.webmanifest')), 200, [
+        'Content-Type' => 'application/manifest+json',
+    ]);
+})->name('pwa.manifest');
+
+Route::get('/service-worker.js', function () {
+    return response(file_get_contents(public_path('service-worker.js')), 200, [
+        'Content-Type' => 'application/javascript',
+        'Cache-Control' => 'no-cache',
+    ]);
+})->name('pwa.service-worker');
+
+Route::view('/funciones', 'pages.functions')->name('functions');
+Route::view('/precios', 'pages.pricing')->name('pricing');
+Route::view('/contacto', 'pages.contact')->name('contact');
+Route::view('/politica-de-privacidad', 'pages.privacy')->name('privacy');
+Route::view('/terminos', 'pages.terms')->name('terms');
 
 Route::post('/contacto', [ContactController::class, 'store'])
     ->name('contact.store');
@@ -123,6 +143,13 @@ Route::prefix('admin')
 
         Route::resource('usuarios', UsuarioController::class)
             ->except(['show']);
+
+        Route::get('solicitudes', [AdminContactRequestController::class, 'index'])
+            ->name('solicitudes.index');
+        Route::get('solicitudes/{solicitud}', [AdminContactRequestController::class, 'show'])
+            ->name('solicitudes.show');
+        Route::patch('solicitudes/{solicitud}', [AdminContactRequestController::class, 'update'])
+            ->name('solicitudes.update');
     });
 
 

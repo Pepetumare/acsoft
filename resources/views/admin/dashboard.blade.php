@@ -19,9 +19,26 @@
             </h1>
 
             <p class="text-muted">
-                Gestiona clientes, negocios, usuarios y módulos desde un solo lugar.
+                Gestiona solicitudes, clientes, negocios, usuarios y módulos desde un solo lugar.
             </p>
 
+        </div>
+
+        <div class="row g-4 mt-1 mb-4">
+            <div class="col-md-4">
+                <a href="{{ route('admin.solicitudes.index', ['status' => 'pendiente']) }}" class="text-decoration-none">
+                    <div class="admin-request-summary h-100"><span>Solicitudes pendientes</span><strong>{{ $pendingRequestsCount }}</strong><small>Revisar solicitudes →</small></div>
+                </a>
+            </div>
+            <div class="col-md-8">
+                <div class="admin-recent-requests h-100"><div class="d-flex justify-content-between align-items-center mb-3"><div><span class="section-eyebrow">Solicitudes</span><h2 class="h5 mt-1 mb-0">Nuevas recientes</h2></div><a href="{{ route('admin.solicitudes.index') }}" class="btn btn-sm btn-acsoft-outline">Ver todas</a></div>
+                    @forelse ($recentRequests as $contactRequest)
+                        <a href="{{ route('admin.solicitudes.show', $contactRequest) }}"><span><strong>{{ $contactRequest->name }}</strong><small>{{ $contactRequest->typeLabel() }} · {{ $contactRequest->created_at->diffForHumans() }}</small></span><em>{{ $contactRequest->statusLabel() }}</em></a>
+                    @empty
+                        <p class="text-muted mb-0">No hay solicitudes en los últimos 7 días.</p>
+                    @endforelse
+                </div>
+            </div>
         </div>
 
 

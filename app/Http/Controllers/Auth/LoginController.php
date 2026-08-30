@@ -42,7 +42,9 @@ class LoginController extends Controller
 
         $request->session()->regenerate();
 
-        return $this->redirectUser($request);
+        return redirect()->to(
+            $request->user()->dashboardUrl()
+        );
     }
 
     public function destroy(Request $request): RedirectResponse
@@ -57,37 +59,4 @@ class LoginController extends Controller
             ->route('home');
     }
 
-    private function redirectUser(
-        Request $request
-    ): RedirectResponse {
-
-        $user = $request->user();
-
-        if ($user->is_superadmin) {
-            return redirect()
-                ->route('admin.dashboard');
-        }
-
-        $negocios = $user
-            ->negocios()
-            ->wherePivot('activo', true)
-            ->where('negocios.activo', true)
-            ->get();
-
-        if ($negocios->isEmpty()) {
-            return redirect()
-                ->route('account.no-business');
-        }
-
-        if ($negocios->count() === 1) {
-            return redirect()
-                ->route(
-                    'gestion.dashboard',
-                    $negocios->first()
-                );
-        }
-
-        return redirect()
-            ->route('business.select');
-    }
 }

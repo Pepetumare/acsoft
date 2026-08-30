@@ -4,6 +4,10 @@ import * as bootstrap from "bootstrap";
 window.bootstrap = bootstrap;
 
 document.addEventListener("DOMContentLoaded", () => {
+    if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/service-worker.js", { scope: "/" });
+    }
+
     const navigation = document.querySelector(".navbar");
 
     const updateNavbar = () => {

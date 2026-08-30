@@ -116,10 +116,62 @@
 
                 </form>
 
+                <div id="acsoft-install" class="acsoft-install mt-4 d-none" aria-live="polite">
+                    <p class="acsoft-install-lead mb-2">Instala ACSoft en tu teléfono para acceder más rápido.</p>
+                    <button type="button" id="installAcsoftButton" class="btn btn-acsoft-outline w-100">
+                        Instalar ACSoft
+                    </button>
+                    <div id="iosInstallInstructions" class="acsoft-ios-instructions d-none mt-3">
+                        <p class="mb-2">Para instalarla en tu iPhone o iPad:</p>
+                        <ol class="mb-0">
+                            <li>Pulsa <strong>Compartir</strong>.</li>
+                            <li>Selecciona <strong>Agregar a pantalla de inicio</strong>.</li>
+                            <li>Confirma <strong>Agregar</strong>.</li>
+                        </ol>
+                    </div>
+                </div>
+
             </div>
         </div>
 
     </div>
 </section>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const installArea = document.getElementById('acsoft-install');
+    const installButton = document.getElementById('installAcsoftButton');
+    const iosInstructions = document.getElementById('iosInstallInstructions');
+    if (!installArea || !installButton) return;
+
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    const isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (isStandalone) return;
+
+    let deferredPrompt = null;
+    if (isIos) {
+        installArea.classList.remove('d-none');
+        installButton.addEventListener('click', () => iosInstructions.classList.toggle('d-none'));
+    }
+
+    window.addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        deferredPrompt = event;
+        installArea.classList.remove('d-none');
+    });
+
+    installButton.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const result = await deferredPrompt.userChoice;
+        if (result.outcome === 'accepted') installArea.classList.add('d-none');
+        deferredPrompt = null;
+    });
+
+    window.addEventListener('appinstalled', () => installArea.classList.add('d-none'));
+});
+</script>
+@endpush
 
 @endsection

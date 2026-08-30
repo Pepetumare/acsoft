@@ -19,43 +19,22 @@
 
             <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
 
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('home') }}#solucion">
-                        Solución
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('home') }}#como-funciona">
-                        Cómo funciona
-                    </a>
-                </li>
-                <a class="nav-link" href="{{ route('home') }}#caracteristicas">
-                    Características
-                </a>
-
-                <a class="nav-link" href="{{ route('home') }}#servicios">
-                    Servicios
-                </a>
-
-                <a class="nav-link" href="{{ route('home') }}#contacto">
-                    Contacto
-                </a>
-
-                {{-- <li class="nav-item ms-lg-2 mt-3 mt-lg-0">
-                    <a href="{{ route('demo.index') }}" class="btn btn-acsoft-primary px-4">
-                        Probar demo
-                    </a>
-                </li> --}}
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}">Inicio</a></li>
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('functions') ? 'active' : '' }}" href="{{ route('functions') }}">Funciones</a></li>
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('pricing') ? 'active' : '' }}" href="{{ route('pricing') }}">Precios</a></li>
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('contact') ? 'active' : '' }}" href="{{ route('contact') }}">Contacto</a></li>
 
                 <div class="d-flex gap-2">
 
-                    <a href="{{ route('login') }}" class="btn btn-outline-primary">
-                        Iniciar sesión
-                    </a>
-
-                    <a href="{{ route('demo.index') }}" class="btn btn-acsoft-primary">
-                        Probar demo
-                    </a>
+                    @guest
+                        <a href="{{ route('login') }}" class="btn btn-outline-primary">
+                            Iniciar sesión
+                        </a>
+                    @else
+                        <a href="{{ auth()->user()->dashboardUrl() }}" class="btn btn-acsoft-primary">
+                            Dashboard
+                        </a>
+                    @endguest
 
                 </div>
 

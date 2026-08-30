@@ -14,16 +14,15 @@
                     </span>
 
                     <h2 class="section-title mt-3">
-                        Cuéntame qué proceso quieres
+                        Solicita una demostración y conoce
                         <span class="text-acsoft-accent">
-                            ordenar en tu negocio.
+                            ACSoft en tu operación.
                         </span>
                     </h2>
 
                     <p class="section-description mt-3">
-                        Explícame cómo trabajas actualmente y qué problema
-                        te gustaría resolver. Podemos evaluar una solución
-                        simple y adaptada a tu negocio.
+                        Te crearemos un usuario temporal para que uses el sistema real
+                        con un negocio de prueba durante aproximadamente 5 días.
                     </p>
 
 
@@ -37,12 +36,11 @@
 
                             <div>
                                 <strong>
-                                    Cuéntame el problema
+                                    Envía tu solicitud
                                 </strong>
 
                                 <span>
-                                    No necesitas saber de tecnología.
-                                    Solo explica cómo realizas hoy el proceso.
+                                    Cuéntanos sobre tu negocio y deja un medio de contacto.
                                 </span>
                             </div>
 
@@ -57,12 +55,11 @@
 
                             <div>
                                 <strong>
-                                    Revisamos una posible solución
+                                    Coordinamos contigo
                                 </strong>
 
                                 <span>
-                                    Evaluamos si un sistema web puede ayudarte
-                                    a simplificar el trabajo.
+                                    Conversamos brevemente para entender qué necesitas probar.
                                 </span>
                             </div>
 
@@ -77,12 +74,11 @@
 
                             <div>
                                 <strong>
-                                    Diseñamos algo útil
+                                    Preparamos tu acceso
                                 </strong>
 
                                 <span>
-                                    La solución se construye alrededor del
-                                    proceso real del negocio.
+                                    Recibirás un usuario temporal y un negocio de prueba.
                                 </span>
                             </div>
 
@@ -120,15 +116,15 @@
                         <div class="contact-form-header">
 
                             <span>
-                                Solicitud de información
+                                Solicitud de demostración
                             </span>
 
                             <h3>
-                                ¿En qué puedo ayudarte?
+                                Cuéntanos sobre tu negocio
                             </h3>
 
                             <p>
-                                Completa estos datos y responderé tu consulta.
+                                Completa estos datos y te contactaremos.
                             </p>
 
                         </div>
@@ -202,17 +198,17 @@
 
                                 <div class="col-12">
 
-                                    <label for="contact" class="form-label">
-                                        Teléfono o correo
+                                    <label for="email" class="form-label">
+                                        Correo
                                         <span>*</span>
                                     </label>
 
-                                    <input type="text" id="contact" name="contact" value="{{ old('contact') }}"
+                                    <input type="email" id="email" name="email" value="{{ old('email') }}"
                                         class="form-control
-                                            @error('contact') is-invalid @enderror"
-                                        placeholder="+56 9... o correo@ejemplo.cl" required>
+                                            @error('email') is-invalid @enderror"
+                                        placeholder="correo@ejemplo.cl" autocomplete="email" required>
 
-                                    @error('contact')
+                                    @error('email')
                                         <div class="invalid-feedback">
                                             {{ $message }}
                                         </div>
@@ -220,18 +216,24 @@
 
                                 </div>
 
+                                <div class="col-12">
+                                    <label for="phone" class="form-label">Teléfono <small class="text-muted">(opcional)</small></label>
+                                    <input type="tel" id="phone" name="phone" value="{{ old('phone') }}" class="form-control @error('phone') is-invalid @enderror" placeholder="+56 9..." autocomplete="tel">
+                                    @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+
 
                                 <div class="col-12">
 
                                     <label for="message" class="form-label">
-                                        ¿En qué necesitas ayuda?
+                                        ¿Qué te gustaría probar o resolver?
                                         <span>*</span>
                                     </label>
 
                                     <textarea id="message" name="message" rows="6"
                                         class="form-control
                                             @error('message') is-invalid @enderror"
-                                        placeholder="Por ejemplo: actualmente anotamos los pedidos en un cuaderno y después los pasamos a una planilla..."
+                                        placeholder="Por ejemplo: necesito ordenar las ventas, controlar caja y conocer el stock disponible..."
                                         required>{{ old('message') }}</textarea>
 
                                     @error('message')
@@ -256,7 +258,7 @@
                                         <button type="submit" class="btn btn-acsoft-primary btn-lg px-4"
                                             id="contactSubmit">
                                             <span class="contact-submit-text">
-                                                Enviar consulta →
+                                                Enviar solicitud →
                                             </span>
 
                                             <span class="contact-submit-loading d-none">

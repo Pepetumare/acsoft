@@ -62,4 +62,31 @@ class User extends Authenticatable
             ])
             ->withTimestamps();
     }
+
+    public function dashboardUrl(): string
+    {
+        if ($this->is_superadmin) {
+            return route('admin.dashboard');
+        }
+
+        $negociosActivos = $this
+            ->negocios()
+            ->wherePivot('activo', true)
+            ->where('negocios.activo', true)
+            ->limit(2)
+            ->get();
+
+        if ($negociosActivos->isEmpty()) {
+            return route('account.no-business');
+        }
+
+        if ($negociosActivos->count() === 1) {
+            return route(
+                'gestion.dashboard',
+                $negociosActivos->first()
+            );
+        }
+
+        return route('business.select');
+    }
 }

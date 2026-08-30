@@ -17,8 +17,8 @@
                     </h2>
 
                     <p>
-                        Prueba nuestro sistema de recepción de mercadería o cuéntame
-                        qué proceso quieres digitalizar en tu negocio.
+                        Solicita una demostración. Prepararemos un usuario temporal para que
+                        conozcas el sistema real con un negocio de prueba.
                     </p>
 
                 </div>
@@ -27,8 +27,8 @@
 
                     <div class="final-cta-actions">
 
-                        <a href="{{ route('demo.index') }}" class="btn btn-final-primary btn-lg">
-                            Probar demo
+                        <a href="{{ route('contact') }}" class="btn btn-final-primary btn-lg">
+                            Solicitar demostración
                             <span aria-hidden="true">→</span>
                         </a>
 

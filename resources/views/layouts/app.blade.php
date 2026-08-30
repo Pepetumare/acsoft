@@ -22,6 +22,8 @@
 
     <link rel="apple-touch-icon" href="{{ asset('images/acsoft/apple-touch-icon.png') }}">
 
+    <link rel="manifest" href="{{ route('pwa.manifest') }}">
+
 
     {{-- Open Graph --}}
     <meta property="og:type" content="website">

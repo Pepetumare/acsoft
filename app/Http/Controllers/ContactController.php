@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ContactRequestStatus;
+use App\Enums\ContactRequestType;
 use App\Models\ContactRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,7 +22,7 @@ class ContactController extends Controller
 
         if ($request->filled('website')) {
             return redirect()
-                ->route('home')
+                ->route('contact')
                 ->with(
                     'contact_success',
                     'Tu consulta fue enviada correctamente.'
@@ -65,11 +67,17 @@ class ContactController extends Controller
                 'max:150',
             ],
 
-            'contact' => [
+            'email' => [
                 'required',
-                'string',
-                'min:5',
+                'email',
                 'max:150',
+            ],
+
+            'phone' => [
+                'nullable',
+                'string',
+                'max:50',
+                'regex:/^[+\d\s\-()]{8,20}$/',
             ],
 
             'message' => [
@@ -82,8 +90,9 @@ class ContactController extends Controller
             'name.required' => 'Ingresa tu nombre.',
             'name.min' => 'El nombre debe tener al menos 2 caracteres.',
 
-            'contact.required' => 'Ingresa un teléfono o correo de contacto.',
-            'contact.min' => 'Ingresa un teléfono o correo válido.',
+            'email.required' => 'Ingresa tu correo de contacto.',
+            'email.email' => 'Ingresa un correo válido.',
+            'phone.regex' => 'Ingresa un teléfono válido.',
 
             'message.required' => 'Cuéntame brevemente en qué necesitas ayuda.',
             'message.min' => 'El mensaje debe tener al menos 10 caracteres.',
@@ -97,32 +106,20 @@ class ContactController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $contact = trim($validated['contact']);
-
-        $isEmail = filter_var($contact, FILTER_VALIDATE_EMAIL);
-
-        $isPhone = preg_match(
-            '/^[+\d\s\-()]{8,20}$/',
-            $contact
-        );
-
-        if (!$isEmail && !$isPhone) {
-            throw ValidationException::withMessages([
-                'contact' => 'Ingresa un teléfono o correo válido.',
-            ]);
-        }
-
         ContactRequest::create([
             'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'] ?? null,
             'business' => $validated['business'] ?? null,
-            'contact' => $validated['contact'],
+            'contact' => $validated['email'],
             'message' => $validated['message'],
-            'status' => 'pending',
+            'type' => ContactRequestType::Demo,
+            'status' => ContactRequestStatus::Pending,
         ]);
 
 
         return redirect()
-            ->route('home')
+            ->route('contact')
             ->with(
                 'contact_success',
                 'Tu consulta fue enviada correctamente. Te contactaré a la brevedad.'
