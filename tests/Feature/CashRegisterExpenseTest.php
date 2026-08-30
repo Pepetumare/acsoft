@@ -150,12 +150,42 @@ class CashRegisterExpenseTest extends TestCase
         );
 
         $expense = Gasto::firstOrFail();
+        $this->assertSame($this->business->id, $expense->negocio_id);
         $this->assertDatabaseHas('caja_movimientos', [
             'caja_id' => $cashRegister->id,
             'tipo' => 'egreso',
             'monto' => 2500,
             'origen_tipo' => 'gasto',
             'origen_id' => $expense->id,
+        ]);
+    }
+
+    public function test_caja_abierta_de_otro_negocio_no_sirve_para_el_negocio_actual(): void
+    {
+        $otherBusiness = Negocio::create([
+            'cliente_id' => $this->business->cliente_id,
+            'nombre' => 'Otro negocio con caja',
+            'slug' => 'otro-negocio-con-caja',
+            'activo' => true,
+        ]);
+
+        $otherCashRegister = $otherBusiness->cajas()->create([
+            'user_apertura_id' => $this->user->id,
+            'fecha' => now()->toDateString(),
+            'saldo_inicial' => 10000,
+            'estado' => 'abierta',
+            'abierta_en' => now(),
+        ]);
+
+        $this->postExpense()->assertSessionHas(
+            'error',
+            'Debe existir una caja abierta para registrar un gasto en efectivo.'
+        );
+
+        $this->assertDatabaseCount('gastos', 0);
+        $this->assertDatabaseMissing('caja_movimientos', [
+            'caja_id' => $otherCashRegister->id,
+            'origen_tipo' => 'gasto',
         ]);
     }
 
@@ -168,6 +198,28 @@ class CashRegisterExpenseTest extends TestCase
 
         $this->assertDatabaseCount('gastos', 0);
         $this->assertDatabaseCount('caja_movimientos', 0);
+    }
+
+    public function test_gasto_rechazado_conserva_todos_los_valores_ingresados(): void
+    {
+        $response = $this->postExpense();
+
+        foreach ($this->expenseData() as $field => $value) {
+            $response->assertSessionHasInput($field, $value);
+        }
+    }
+
+    public function test_mensaje_de_gasto_rechazado_aparece_en_la_respuesta_siguiente(): void
+    {
+        $this->postExpense()->assertRedirect(
+            route('gestion.gastos.create', $this->business)
+        );
+
+        $this->get(route('gestion.gastos.create', $this->business))
+            ->assertOk()
+            ->assertSeeText(
+                'Debe existir una caja abierta para registrar un gasto en efectivo.'
+            );
     }
 
     public function test_gasto_en_efectivo_sin_modulo_caja_se_registra_normalmente(): void
@@ -212,38 +264,68 @@ class CashRegisterExpenseTest extends TestCase
     {
         $cashRegister = $this->createClosedCashRegister();
         $sale = $this->createSaleWithCashMovement($cashRegister);
+        $movement = CajaMovimiento::where('origen_tipo', 'venta')
+            ->where('origen_id', $sale->id)
+            ->firstOrFail();
 
-        $this->actingAs($this->user)->delete(
-            route('gestion.ventas.destroy', [$this->business, $sale])
-        )->assertSessionHas(
+        $response = $this->actingAs($this->user)
+            ->from(route('gestion.ventas.index', $this->business))
+            ->delete(route('gestion.ventas.destroy', [$this->business, $sale]));
+
+        $response->assertRedirect(route('gestion.ventas.index', $this->business));
+        $response->assertSessionHas(
             'error',
             'No se puede eliminar la venta porque pertenece a una caja cerrada.'
         );
 
         $this->assertDatabaseHas('ventas', ['id' => $sale->id]);
         $this->assertDatabaseHas('caja_movimientos', [
+            'id' => $movement->id,
+            'caja_id' => $cashRegister->id,
             'origen_tipo' => 'venta',
             'origen_id' => $sale->id,
+            'monto' => $movement->monto,
         ]);
+
+        $this->get(route('gestion.ventas.index', $this->business))
+            ->assertOk()
+            ->assertSeeText(
+                'No se puede eliminar la venta porque pertenece a una caja cerrada.'
+            );
     }
 
     public function test_no_permite_eliminar_gasto_ligado_a_caja_cerrada(): void
     {
         $cashRegister = $this->createClosedCashRegister();
         $expense = $this->createExpenseWithCashMovement($cashRegister);
+        $movement = CajaMovimiento::where('origen_tipo', 'gasto')
+            ->where('origen_id', $expense->id)
+            ->firstOrFail();
 
-        $this->actingAs($this->user)->delete(
-            route('gestion.gastos.destroy', [$this->business, $expense])
-        )->assertSessionHas(
+        $response = $this->actingAs($this->user)
+            ->from(route('gestion.gastos.index', $this->business))
+            ->delete(route('gestion.gastos.destroy', [$this->business, $expense]));
+
+        $response->assertRedirect(route('gestion.gastos.index', $this->business));
+        $response->assertSessionHas(
             'error',
             'No se puede eliminar el gasto porque pertenece a una caja cerrada.'
         );
 
         $this->assertDatabaseHas('gastos', ['id' => $expense->id]);
         $this->assertDatabaseHas('caja_movimientos', [
+            'id' => $movement->id,
+            'caja_id' => $cashRegister->id,
             'origen_tipo' => 'gasto',
             'origen_id' => $expense->id,
+            'monto' => $movement->monto,
         ]);
+
+        $this->get(route('gestion.gastos.index', $this->business))
+            ->assertOk()
+            ->assertSeeText(
+                'No se puede eliminar el gasto porque pertenece a una caja cerrada.'
+            );
     }
 
     public function test_permite_eliminar_operaciones_si_caja_sigue_abierta(): void
@@ -319,15 +401,24 @@ class CashRegisterExpenseTest extends TestCase
 
     private function postExpense()
     {
-        return $this->actingAs($this->user)->post(
-            route('gestion.gastos.store', $this->business),
-            [
-                'fecha' => now()->toDateString(),
-                'concepto' => 'Gasto en efectivo',
-                'monto' => 2500,
-                'metodo_pago' => 'Efectivo',
-            ]
-        );
+        return $this->actingAs($this->user)
+            ->from(route('gestion.gastos.create', $this->business))
+            ->post(
+                route('gestion.gastos.store', $this->business),
+                $this->expenseData()
+            );
+    }
+
+    private function expenseData(): array
+    {
+        return [
+            'fecha' => now()->toDateString(),
+            'concepto' => 'Gasto en efectivo',
+            'monto' => 2500,
+            'categoria' => 'Insumos',
+            'metodo_pago' => 'Efectivo',
+            'observacion' => 'Compra operativa',
+        ];
     }
 
     private function createSaleWithCashMovement(Caja $cashRegister): Venta
