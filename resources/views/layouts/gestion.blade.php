@@ -165,6 +165,13 @@
 
                 @if (auth()->user()->canManageBusiness($negocio))
                     <a
+                        href="{{ route('gestion.usuarios.index', $negocio) }}"
+                        class="gestion-nav-link {{ request()->routeIs('gestion.usuarios.*') ? 'active' : '' }}"
+                    >
+                        Usuarios
+                    </a>
+
+                    <a
                         href="{{ route('gestion.personalizacion.edit', $negocio) }}"
                         class="gestion-nav-link {{ request()->routeIs('gestion.personalizacion.*') ? 'active' : '' }}"
                     >

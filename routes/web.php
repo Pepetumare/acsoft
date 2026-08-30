@@ -27,6 +27,7 @@ use App\Http\Controllers\Gestion\ProductoController as ProductoControllerGestion
 use App\Http\Controllers\Gestion\StockController;
 use App\Http\Controllers\Gestion\CompraController;
 use App\Http\Controllers\Gestion\PersonalizacionController;
+use App\Http\Controllers\Gestion\UsuarioController as GestionUsuarioController;
 
 
 
@@ -198,6 +199,22 @@ Route::middleware('auth')
                     ->name('colors.destroy');
                 Route::delete('/logo', [PersonalizacionController::class, 'destroyLogo'])
                     ->name('logo.destroy');
+            });
+
+        Route::prefix('gestion/{negocio}/usuarios')
+            ->name('gestion.usuarios.')
+            ->middleware([
+                'auth',
+                'tenant.business',
+                'business.role:admin',
+            ])
+            ->group(function () {
+                Route::get('/', [GestionUsuarioController::class, 'index'])->name('index');
+                Route::get('/crear', [GestionUsuarioController::class, 'create'])->name('create');
+                Route::post('/', [GestionUsuarioController::class, 'store'])->name('store');
+                Route::get('/{usuario}/editar', [GestionUsuarioController::class, 'edit'])->name('edit');
+                Route::put('/{usuario}', [GestionUsuarioController::class, 'update'])->name('update');
+                Route::delete('/{usuario}', [GestionUsuarioController::class, 'destroy'])->name('destroy');
             });
 
         // Route::get(
