@@ -5471,3 +5471,424 @@ select:focus-visible {
     }
 
 }
+
+/* ========================================
+   ADMIN - MÓDULOS DE NEGOCIO
+======================================== */
+
+.admin-module-category-title {
+    margin-bottom: .8rem;
+
+    color: var(--acsoft-muted);
+
+    font-size: .75rem;
+
+    font-weight: 700;
+
+    letter-spacing: .06em;
+
+    text-transform: uppercase;
+}
+
+.admin-module-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: .8rem;
+}
+
+.admin-module-option {
+    position: relative;
+
+    display: flex;
+
+    align-items: flex-start;
+
+    gap: .8rem;
+
+    min-height: 78px;
+
+    padding: 1rem;
+
+    background: var(--acsoft-background);
+
+    border: 1px solid var(--acsoft-border);
+
+    border-radius: 12px;
+
+    cursor: pointer;
+
+    transition:
+        background-color .2s ease,
+        border-color .2s ease,
+        transform .2s ease;
+}
+
+.admin-module-option:hover {
+    transform: translateY(-1px);
+
+    background: white;
+
+    border-color: rgba(36,151,227,.35);
+}
+
+.admin-module-option input {
+    position: absolute;
+
+    opacity: 0;
+
+    pointer-events: none;
+}
+
+.admin-module-check {
+    flex: 0 0 auto;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 26px;
+    height: 26px;
+
+    background: white;
+
+    border: 1px solid var(--acsoft-border);
+
+    border-radius: 7px;
+
+    color: transparent;
+
+    font-size: .72rem;
+
+    font-weight: 800;
+}
+
+.admin-module-option
+input:checked
++ .admin-module-check {
+    background: var(--acsoft-accent);
+
+    border-color: var(--acsoft-accent);
+
+    color: white;
+}
+
+.admin-module-option:has(input:checked) {
+    background: var(--acsoft-accent-light);
+
+    border-color: rgba(36,151,227,.3);
+}
+
+.admin-module-content {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: .15rem;
+}
+
+.admin-module-content strong {
+    color: var(--acsoft-primary);
+
+    font-size: .9rem;
+}
+
+.admin-module-content small {
+    color: var(--acsoft-muted);
+
+    font-size: .73rem;
+
+    line-height: 1.45;
+}
+
+
+@media (max-width: 767px) {
+
+    .admin-module-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+/* ========================================
+   ACSoft Gestión
+======================================== */
+
+.gestion-app {
+    min-height: 100vh;
+
+    background: #f5f7fa;
+}
+
+.gestion-topbar {
+    position: sticky;
+
+    top: 0;
+
+    z-index: 1000;
+
+    background: var(--acsoft-primary);
+
+    color: white;
+}
+
+.gestion-topbar-inner {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    min-height: 64px;
+
+    padding: 0 1rem;
+}
+
+.gestion-brand {
+    display: flex;
+
+    align-items: center;
+
+    gap: .15rem;
+
+    color: white;
+
+    font-size: 1.3rem;
+
+    font-weight: 800;
+
+    text-decoration: none;
+}
+
+.gestion-brand > span {
+    color: var(--acsoft-accent);
+}
+
+.gestion-brand small {
+    margin-left: .45rem;
+
+    padding: .2rem .45rem;
+
+    background: rgba(255,255,255,.1);
+
+    border-radius: 999px;
+
+    color: rgba(255,255,255,.7);
+
+    font-size: .55rem;
+}
+
+.gestion-topbar-user {
+    display: flex;
+
+    align-items: center;
+
+    gap: 1rem;
+}
+
+.gestion-topbar-user strong {
+    display: block;
+
+    color: white;
+
+    font-size: .8rem;
+}
+
+.gestion-topbar-user span {
+    display: block;
+
+    color: rgba(255,255,255,.55);
+
+    font-size: .68rem;
+}
+
+
+.gestion-shell {
+    display: grid;
+
+    grid-template-columns:
+        240px
+        minmax(0, 1fr);
+
+    min-height: calc(100vh - 64px);
+}
+
+.gestion-sidebar {
+    padding: 1rem;
+
+    background: white;
+
+    border-right: 1px solid var(--acsoft-border);
+}
+
+.gestion-sidebar nav {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: .3rem;
+}
+
+.gestion-nav-link {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    min-height: 44px;
+
+    padding: .7rem .85rem;
+
+    border-radius: 9px;
+
+    color: var(--acsoft-muted);
+
+    font-size: .85rem;
+
+    font-weight: 600;
+
+    text-decoration: none;
+
+    transition:
+        background-color .2s ease,
+        color .2s ease;
+}
+
+.gestion-nav-link:hover {
+    background: var(--acsoft-background);
+
+    color: var(--acsoft-primary);
+}
+
+.gestion-nav-link.active {
+    background: var(--acsoft-accent-light);
+
+    color: var(--acsoft-accent);
+}
+
+.gestion-nav-disabled {
+    opacity: .55;
+
+    cursor: default;
+}
+
+.gestion-nav-disabled small {
+    font-size: .55rem;
+}
+
+.gestion-main {
+    min-width: 0;
+}
+
+.gestion-page-header {
+    margin-bottom: 2rem;
+}
+
+.gestion-page-header h1 {
+    margin:
+        .35rem 0
+        .5rem;
+
+    color: var(--acsoft-primary);
+
+    font-size: 2rem;
+
+    font-weight: 750;
+}
+
+.gestion-page-header p {
+    margin: 0;
+
+    color: var(--acsoft-muted);
+}
+
+
+.gestion-module-card {
+    display: flex;
+
+    align-items: flex-start;
+
+    gap: 1rem;
+
+    padding: 1.4rem;
+
+    background: white;
+
+    border: 1px solid var(--acsoft-border);
+
+    border-radius: 16px;
+
+    box-shadow:
+        0 12px 35px rgba(15, 39, 68, .04);
+}
+
+.gestion-module-icon {
+    flex: 0 0 auto;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 46px;
+    height: 46px;
+
+    background: var(--acsoft-accent-light);
+
+    border-radius: 12px;
+
+    color: var(--acsoft-accent);
+
+    font-weight: 800;
+}
+
+.gestion-module-card h2 {
+    margin-bottom: .4rem;
+
+    color: var(--acsoft-primary);
+
+    font-size: 1rem;
+
+    font-weight: 700;
+}
+
+.gestion-module-card p {
+    margin-bottom: 1rem;
+
+    color: var(--acsoft-muted);
+
+    font-size: .82rem;
+
+    line-height: 1.55;
+}
+
+
+@media (max-width: 991px) {
+
+    .gestion-shell {
+        grid-template-columns: 1fr;
+    }
+
+    .gestion-sidebar {
+        position: sticky;
+
+        top: 64px;
+
+        z-index: 900;
+
+        overflow-x: auto;
+
+        border-right: 0;
+
+        border-bottom: 1px solid var(--acsoft-border);
+    }
+
+    .gestion-sidebar nav {
+        flex-direction: row;
+
+        min-width: max-content;
+    }
+
+}
