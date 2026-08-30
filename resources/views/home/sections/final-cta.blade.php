@@ -27,7 +27,7 @@
 
                     <div class="final-cta-actions">
 
-                        <a href="{{ route('contacto') }}" class="btn btn-final-primary btn-lg">
+                        <a href="{{ route('contact') }}" class="btn btn-final-primary btn-lg">
                             Solicitar demostración
                             <span aria-hidden="true">→</span>
                         </a>

@@ -10,7 +10,7 @@
             <div class="hero-badge mb-3"><span class="hero-badge-dot"></span> Gestión simple para negocios reales</div>
             <h1 class="hero-title">Tu negocio en orden, <span>sin complicaciones.</span></h1>
             <p class="hero-description">Controla ventas, caja, gastos, productos, stock y compras desde un sistema web claro, pensado para el trabajo de todos los días.</p>
-            <div class="d-flex flex-column flex-sm-row gap-3 mt-4"><a href="{{ route('contacto') }}" class="btn btn-acsoft-primary btn-lg px-4">Solicitar demostración</a><a href="{{ route('functions') }}" class="btn btn-acsoft-outline btn-lg px-4">Ver funciones</a></div>
+            <div class="d-flex flex-column flex-sm-row gap-3 mt-4"><a href="{{ route('contact') }}" class="btn btn-acsoft-primary btn-lg px-4">Solicitar demostración</a><a href="{{ route('functions') }}" class="btn btn-acsoft-outline btn-lg px-4">Ver funciones</a></div>
             <div class="demo-duration"><span>✓</span><strong>Demostración por 5 días</strong><small>con usuario temporal y negocio de prueba</small></div>
         </div>
         <div class="col-lg-6">

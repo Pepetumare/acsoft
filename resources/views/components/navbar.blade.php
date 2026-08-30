@@ -22,7 +22,7 @@
                 <li class="nav-item"><a class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}">Inicio</a></li>
                 <li class="nav-item"><a class="nav-link {{ request()->routeIs('functions') ? 'active' : '' }}" href="{{ route('functions') }}">Funciones</a></li>
                 <li class="nav-item"><a class="nav-link {{ request()->routeIs('pricing') ? 'active' : '' }}" href="{{ route('pricing') }}">Precios</a></li>
-                <li class="nav-item"><a class="nav-link {{ request()->routeIs('contacto') ? 'active' : '' }}" href="{{ route('contacto') }}">Contacto</a></li>
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('contact') ? 'active' : '' }}" href="{{ route('contact') }}">Contacto</a></li>
 
                 <div class="d-flex gap-2">
 
