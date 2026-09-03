@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Cliente;
 use App\Models\Modulo;
 use App\Models\Negocio;
+use App\Models\NegocioInvitacion;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -91,7 +92,7 @@ class BusinessUserManagementTest extends TestCase
         ]);
     }
 
-    public function test_email_existente_se_asocia_sin_duplicar_user(): void
+    public function test_email_existente_crea_invitacion_sin_asociarlo(): void
     {
         $existente = User::factory()->create(['email' => 'existente@example.com']);
         $cantidad = User::count();
@@ -106,9 +107,15 @@ class BusinessUserManagementTest extends TestCase
             ])->assertRedirect();
 
         $this->assertSame($cantidad, User::count());
-        $this->assertDatabaseHas('negocio_user', [
+        $this->assertDatabaseMissing('negocio_user', [
             'negocio_id' => $this->negocio->id,
             'user_id' => $existente->id,
+        ]);
+        $this->assertDatabaseHas('negocio_invitaciones', [
+            'negocio_id' => $this->negocio->id,
+            'email' => 'existente@example.com',
+            'rol' => 'usuario',
+            'accepted_at' => null,
         ]);
     }
 
@@ -122,9 +129,80 @@ class BusinessUserManagementTest extends TestCase
                 'password' => 'ClaveSegura123',
                 'password_confirmation' => 'ClaveSegura123',
                 'rol' => 'usuario',
-            ])->assertSessionHasErrors('email');
+            ])->assertRedirect(route('gestion.usuarios.index', $this->negocio));
 
         $this->assertDatabaseCount('negocio_user', 2);
+    }
+
+    public function test_invitacion_valida_se_acepta_una_sola_vez(): void
+    {
+        $invitado = User::factory()->create(['email' => 'invitado@example.com', 'is_superadmin' => false]);
+        [$invitation, $token] = $this->createInvitation('invitado@example.com');
+
+        $this->actingAs($invitado)->get(route('business-invitations.show', $token))->assertOk();
+        $this->actingAs($invitado)->post(route('business-invitations.accept', $token))->assertRedirect();
+
+        $this->assertDatabaseHas('negocio_user', [
+            'negocio_id' => $this->negocio->id,
+            'user_id' => $invitado->id,
+            'rol' => 'usuario',
+            'activo' => true,
+        ]);
+        $this->assertNotNull($invitation->fresh()->accepted_at);
+        $this->actingAs($invitado)->post(route('business-invitations.accept', $token))->assertStatus(410);
+        $this->assertSame(1, $this->negocio->usuarios()->where('users.id', $invitado->id)->count());
+    }
+
+    public function test_email_incorrecto_no_puede_aceptar_invitacion_cross_tenant(): void
+    {
+        $otro = User::factory()->create(['email' => 'otro@example.com']);
+        [, $token] = $this->createInvitation('invitado@example.com');
+
+        $this->actingAs($otro)->post(route('business-invitations.accept', $token))->assertForbidden();
+        $this->assertDatabaseMissing('negocio_user', [
+            'negocio_id' => $this->negocio->id,
+            'user_id' => $otro->id,
+        ]);
+    }
+
+    public function test_invitacion_expirada_es_rechazada(): void
+    {
+        $invitado = User::factory()->create(['email' => 'invitado@example.com']);
+        [, $token] = $this->createInvitation('invitado@example.com', now()->subMinute());
+
+        $this->actingAs($invitado)->post(route('business-invitations.accept', $token))->assertStatus(410);
+        $this->assertDatabaseMissing('negocio_user', [
+            'negocio_id' => $this->negocio->id,
+            'user_id' => $invitado->id,
+        ]);
+    }
+
+    public function test_invitacion_no_puede_convertir_superadmin(): void
+    {
+        $superadmin = User::factory()->create(['email' => 'super@example.com', 'is_superadmin' => true]);
+        [, $token] = $this->createInvitation('super@example.com', now()->addHours(72), 'admin');
+
+        $this->actingAs($superadmin)->post(route('business-invitations.accept', $token))->assertForbidden();
+        $this->assertDatabaseMissing('negocio_user', [
+            'negocio_id' => $this->negocio->id,
+            'user_id' => $superadmin->id,
+        ]);
+    }
+
+    public function test_invitado_sin_sesion_vuelve_a_invitacion_despues_del_login(): void
+    {
+        $invitado = User::factory()->create([
+            'email' => 'invitado@example.com',
+            'password' => Hash::make('ClaveSegura123'),
+        ]);
+        [, $token] = $this->createInvitation('invitado@example.com');
+        $url = route('business-invitations.show', $token);
+
+        $this->get($url)->assertRedirect(route('login'));
+        $this->post(route('login.store'), [
+            'email' => $invitado->email,
+            'password' => 'ClaveSegura123',
+        ])->assertRedirect($url);
     }
 
     public function test_admin_no_puede_tocar_usuario_de_otro_negocio(): void
@@ -223,5 +301,23 @@ class BusinessUserManagementTest extends TestCase
     private function attach(Negocio $negocio, User $user, string $rol): void
     {
         $negocio->usuarios()->attach($user->id, ['rol' => $rol, 'activo' => true]);
+    }
+
+    private function createInvitation(
+        string $email,
+        $expiresAt = null,
+        string $role = 'usuario'
+    ): array {
+        $token = str_repeat('a', 32).bin2hex(random_bytes(16));
+        $invitation = NegocioInvitacion::create([
+            'negocio_id' => $this->negocio->id,
+            'email' => $email,
+            'rol' => $role,
+            'token_hash' => hash('sha256', $token),
+            'expires_at' => $expiresAt ?? now()->addHours(72),
+            'created_by' => $this->admin->id,
+        ]);
+
+        return [$invitation, $token];
     }
 }

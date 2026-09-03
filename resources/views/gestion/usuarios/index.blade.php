@@ -19,6 +19,13 @@
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
 
+    @if (session('invitation_url') && app()->environment(['local', 'development']))
+        <div class="alert alert-info">
+            Enlace local de invitación:
+            <a href="{{ session('invitation_url') }}">{{ session('invitation_url') }}</a>
+        </div>
+    @endif
+
     @if ($errors->any())
         <div class="alert alert-danger">{{ $errors->first() }}</div>
     @endif

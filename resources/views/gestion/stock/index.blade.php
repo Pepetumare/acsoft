@@ -178,8 +178,9 @@
                         >
 
                         <div class="form-text">
-                            Para ajustes puedes usar
-                            valores positivos o negativos.
+                            Entradas y salidas requieren un valor positivo.
+                            Los ajustes representan una variación: usa un valor
+                            positivo para sumar o negativo para restar.
                         </div>
 
                     </div>
@@ -364,6 +365,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const producto = document.getElementById('producto_id');
     const cantidad = document.getElementById('cantidad');
+    const tipo = document.getElementById('tipo');
 
     function actualizarPasoCantidad() {
         const opcion = producto.options[producto.selectedIndex];
@@ -371,9 +373,11 @@ document.addEventListener('DOMContentLoaded', () => {
             .includes(opcion?.dataset.unidad);
 
         cantidad.step = cantidadEntera ? '1' : '0.001';
+        cantidad.min = tipo.value === 'ajuste' ? '' : (cantidadEntera ? '1' : '0.001');
     }
 
     producto.addEventListener('change', actualizarPasoCantidad);
+    tipo.addEventListener('change', actualizarPasoCantidad);
     actualizarPasoCantidad();
 });
 </script>

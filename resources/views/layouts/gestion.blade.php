@@ -111,20 +111,6 @@
 
             <nav>
 
-                <a
-                    href="{{ route(
-                        'gestion.dashboard',
-                        $negocio
-                    ) }}"
-                    class="gestion-nav-link
-                        {{ request()->routeIs('gestion.dashboard')
-                            ? 'active'
-                            : '' }}"
-                >
-                    Dashboard
-                </a>
-
-
                 @foreach($negocio->modulosActivos as $modulo)
 
                     @if(

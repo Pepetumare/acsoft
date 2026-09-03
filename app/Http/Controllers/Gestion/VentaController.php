@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Gestion;
 
+use App\Enums\MetodoPago;
 use App\Http\Controllers\Controller;
 use App\Models\CajaMovimiento;
 use App\Models\Negocio;
@@ -127,8 +128,7 @@ class VentaController extends Controller
 
             'metodo_pago' => [
                 'nullable',
-                'string',
-                'max:50',
+                Rule::in(MetodoPago::values()),
             ],
 
             'observacion' => [
@@ -236,7 +236,7 @@ class VentaController extends Controller
             $caja = null;
 
             if (
-                ($validated['metodo_pago'] ?? null) === 'Efectivo'
+                MetodoPago::esEfectivo($validated['metodo_pago'] ?? null)
                 && $usaCaja
             ) {
                 $caja = $negocio
@@ -249,6 +249,12 @@ class VentaController extends Controller
                 if (! $caja) {
                     throw ValidationException::withMessages([
                         'metodo_pago' => 'Debe existir una caja abierta para registrar una venta en efectivo.',
+                    ]);
+                }
+
+                if ($caja->fecha->toDateString() !== $validated['fecha']) {
+                    throw ValidationException::withMessages([
+                        'fecha' => 'No puedes registrar una operación en efectivo para una fecha distinta a la caja abierta.',
                     ]);
                 }
             }
@@ -264,6 +270,7 @@ class VentaController extends Controller
                 $productos = $negocio
                     ->productos()
                     ->whereIn('id', $productoIds)
+                    ->where('activo', true)
                     ->orderBy('id')
                     ->lockForUpdate()
                     ->get()

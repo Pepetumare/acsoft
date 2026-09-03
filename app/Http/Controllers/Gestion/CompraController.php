@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Gestion;
 use App\Http\Controllers\Controller;
 use App\Models\Compra;
 use App\Models\Negocio;
+use App\Models\Producto;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -100,6 +101,11 @@ class CompraController extends Controller
                 'max:1000',
             ],
 
+            'operation_token' => [
+                'required',
+                'uuid',
+            ],
+
             'detalles' => [
                 'required',
                 'array',
@@ -157,10 +163,19 @@ class CompraController extends Controller
             $productos = $negocio
                 ->productos()
                 ->whereIn('id', $productoIds)
+                ->where('activo', true)
                 ->orderBy('id')
                 ->lockForUpdate()
                 ->get()
                 ->keyBy('id');
+
+            $compraExistente = $negocio->compras()
+                ->where('operation_token', $validated['operation_token'])
+                ->first();
+
+            if ($compraExistente) {
+                return;
+            }
 
             if ($productos->count() !== $productoIds->count()) {
                 throw ValidationException::withMessages([
@@ -183,13 +198,19 @@ class CompraController extends Controller
                 }
             }
 
-            $compra = $negocio->compras()->create([
+            $compra = $negocio->compras()->createOrFirst([
+                'operation_token' => $validated['operation_token'],
+            ], [
                 'user_id' => $request->user()->id,
                 'fecha' => $validated['fecha'],
                 'proveedor' => $validated['proveedor'] ?? null,
                 'observacion' => $validated['observacion'] ?? null,
                 'total' => 0,
             ]);
+
+            if (! $compra->wasRecentlyCreated) {
+                return;
+            }
 
             $total = 0;
 
@@ -252,10 +273,47 @@ class CompraController extends Controller
         );
 
 
-        DB::transaction(function () use (
+        $eliminada = DB::transaction(function () use (
             $negocio,
             $compra
         ) {
+
+            $productoIds = $compra->detalles()
+                ->pluck('producto_id')
+                ->unique()
+                ->sort()
+                ->values();
+
+            $negocio->productos()
+                ->whereIn('id', $productoIds)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+
+            $stocksActuales = DB::table('stock_movimientos')
+                ->select('producto_id')
+                ->selectRaw(Producto::stockExpression().' as stock_actual')
+                ->where('negocio_id', $negocio->id)
+                ->whereIn('producto_id', $productoIds)
+                ->groupBy('producto_id')
+                ->pluck('stock_actual', 'producto_id');
+
+            $entradasCompra = $negocio->movimientosStock()
+                ->where('origen_tipo', 'compra')
+                ->where('origen_id', $compra->id)
+                ->whereIn('producto_id', $productoIds)
+                ->selectRaw('producto_id, SUM(CASE WHEN tipo = \'entrada\' THEN cantidad ELSE 0 END) as cantidad')
+                ->groupBy('producto_id')
+                ->pluck('cantidad', 'producto_id');
+
+            foreach ($productoIds as $productoId) {
+                $stockPosterior = (float) ($stocksActuales[$productoId] ?? 0)
+                    - (float) ($entradasCompra[$productoId] ?? 0);
+
+                if ($stockPosterior < -0.0005) {
+                    return false;
+                }
+            }
 
             $negocio
                 ->movimientosStock()
@@ -270,7 +328,16 @@ class CompraController extends Controller
                 ->delete();
 
             $compra->delete();
+
+            return true;
         });
+
+        if (! $eliminada) {
+            return back()->with(
+                'error',
+                'No se puede eliminar esta compra porque parte de su stock ya fue utilizado.'
+            );
+        }
 
 
         return redirect()

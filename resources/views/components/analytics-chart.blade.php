@@ -1,0 +1,2 @@
+@props(['id', 'eyebrow', 'title', 'wide' => false, 'hasData' => true])
+<section class="analytics-panel"><div class="analytics-panel-heading"><div><span>{{ $eyebrow }}</span><h2>{{ $title }}</h2></div></div><div class="analytics-chart {{ $wide ? 'analytics-chart-wide' : '' }}">@if($hasData)<canvas id="{{ $id }}"></canvas>@else<div class="analytics-empty h-100 justify-content-center"><strong>No hay datos para este período</strong></div>@endif</div></section>

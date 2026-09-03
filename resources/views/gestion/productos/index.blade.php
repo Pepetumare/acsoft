@@ -288,6 +288,7 @@
                                         </a>
 
 
+                                        @if ($producto->activo)
                                         <form
                                             action="{{ route(
                                                 'gestion.productos.destroy',
@@ -298,7 +299,7 @@
                                             ) }}"
                                             method="POST"
                                             onsubmit="return confirm(
-                                                '¿Eliminar este producto?'
+                                                'El producto dejará de estar disponible para nuevas operaciones, pero su historial se conservará. ¿Continuar?'
                                             )"
                                         >
 
@@ -310,10 +311,11 @@
                                                 class="btn btn-sm
                                                     btn-demo-delete"
                                             >
-                                                Eliminar
+                                                Desactivar
                                             </button>
 
                                         </form>
+                                        @endif
 
                                     </div>
 

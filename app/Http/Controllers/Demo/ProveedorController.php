@@ -34,6 +34,12 @@ class ProveedorController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        if (DemoProveedor::where('demo_session_id', session('demo_session_id'))->count() >= 20) {
+            return back()->withInput()->withErrors([
+                'demo' => 'La demostración alcanzó el límite permitido. Puedes reiniciar la demo o solicitar una demostración completa.',
+            ]);
+        }
+
         $validated = $request->validate([
             'nombre' => [
                 'required',

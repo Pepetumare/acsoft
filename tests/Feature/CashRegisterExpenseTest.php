@@ -112,6 +112,7 @@ class CashRegisterExpenseTest extends TestCase
                 'tipo' => 'ingreso',
                 'concepto' => 'Movimiento tardío',
                 'monto' => 1000,
+                'operation_token' => (string) Str::uuid(),
             ]
         )->assertSessionHas(
             'error',
@@ -122,6 +123,35 @@ class CashRegisterExpenseTest extends TestCase
             'caja_id' => $cashRegister->id,
             'concepto' => 'Movimiento tardío',
         ]);
+    }
+
+    public function test_movimiento_manual_es_idempotente_y_token_nuevo_es_legitimo(): void
+    {
+        $this->createOpenCashRegister();
+        $token = (string) Str::uuid();
+        $data = [
+            'tipo' => 'ingreso', 'concepto' => 'Manual', 'monto' => 1000,
+            'operation_token' => $token,
+        ];
+
+        $this->actingAs($this->user)->post(route('gestion.caja.movimientos.store', $this->business), $data)->assertRedirect();
+        $this->actingAs($this->user)->post(route('gestion.caja.movimientos.store', $this->business), $data)->assertRedirect();
+        $data['operation_token'] = (string) Str::uuid();
+        $this->actingAs($this->user)->post(route('gestion.caja.movimientos.store', $this->business), $data)->assertRedirect();
+
+        $this->assertDatabaseCount('caja_movimientos', 2);
+        $this->assertSame(2000.0, $this->business->cajaAbierta()->totalIngresos());
+    }
+
+    public function test_formulario_movimiento_manual_incluye_token_y_bloqueo(): void
+    {
+        $this->createOpenCashRegister();
+
+        $this->actingAs($this->user)->get(route('gestion.caja.index', $this->business))
+            ->assertOk()
+            ->assertSee('name="operation_token"', false)
+            ->assertSee('id="manual-cash-movement-submit"', false)
+            ->assertSee("button.textContent = 'Guardando...'", false);
     }
 
     public function test_totales_de_caja_se_calculan_con_una_sola_consulta(): void
@@ -162,6 +192,49 @@ class CashRegisterExpenseTest extends TestCase
         ]);
         $this->assertDatabaseCount('gastos', 1);
         $this->assertDatabaseCount('caja_movimientos', 1);
+    }
+
+    public function test_gasto_rechaza_metodo_invalido_y_variante_efectivo(): void
+    {
+        foreach (['Cheque', 'efectivo'] as $metodo) {
+            $data = $this->expenseData();
+            $data['metodo_pago'] = $metodo;
+
+            $this->postExpense($data)->assertSessionHasErrors('metodo_pago');
+        }
+
+        $this->assertDatabaseCount('gastos', 0);
+        $this->assertDatabaseCount('caja_movimientos', 0);
+    }
+
+    public function test_gasto_efectivo_debe_coincidir_con_fecha_de_caja(): void
+    {
+        $this->createOpenCashRegister();
+
+        foreach ([now()->subDay()->toDateString(), now()->addDay()->toDateString()] as $fecha) {
+            $data = $this->expenseData();
+            $data['fecha'] = $fecha;
+
+            $this->postExpense($data)->assertSessionHasErrors([
+                'fecha' => 'No puedes registrar una operación en efectivo para una fecha distinta a la caja abierta.',
+            ]);
+        }
+
+        $this->assertDatabaseCount('gastos', 0);
+        $this->assertDatabaseCount('caja_movimientos', 0);
+    }
+
+    public function test_gasto_no_efectivo_con_otra_fecha_conserva_comportamiento_actual(): void
+    {
+        $this->createOpenCashRegister();
+        $data = $this->expenseData();
+        $data['fecha'] = now()->subDay()->toDateString();
+        $data['metodo_pago'] = 'Transferencia';
+
+        $this->postExpense($data)->assertRedirect(route('gestion.gastos.index', $this->business));
+
+        $this->assertDatabaseCount('gastos', 1);
+        $this->assertDatabaseCount('caja_movimientos', 0);
     }
 
     public function test_reenvio_del_mismo_token_no_duplica_gasto_ni_movimiento(): void

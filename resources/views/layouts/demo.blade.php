@@ -116,6 +116,12 @@
 
     <main>
 
+        @if ($errors->any())
+            <div class="container pt-4">
+                <div class="alert alert-danger">{{ $errors->first() }}</div>
+            </div>
+        @endif
+
         @yield('content')
 
     </main>

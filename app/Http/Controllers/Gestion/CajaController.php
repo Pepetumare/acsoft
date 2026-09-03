@@ -94,6 +94,7 @@ class CajaController extends Controller
             'concepto' => ['required', 'string', 'max:255'],
             'monto' => ['required', 'numeric', 'min:0.01'],
             'observacion' => ['nullable', 'string', 'max:1000'],
+            'operation_token' => ['required', 'uuid'],
         ]);
 
         $registrado = DB::transaction(function () use ($validated, $request, $negocio) {
@@ -108,7 +109,9 @@ class CajaController extends Controller
                 return false;
             }
 
-            $caja->movimientos()->create([
+            $caja->movimientos()->createOrFirst([
+                'operation_token' => $validated['operation_token'],
+            ], [
                 'user_id' => $request->user()->id,
                 'tipo' => $validated['tipo'],
                 'concepto' => $validated['concepto'],

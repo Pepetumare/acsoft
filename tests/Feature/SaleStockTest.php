@@ -412,6 +412,64 @@ class SaleStockTest extends TestCase
         $this->assertSame(10.0, (float) $products->firstWhere('id', $this->product->id)->stock_actual);
     }
 
+    public function test_metodo_de_pago_invalido_y_variante_efectivo_son_rechazados(): void
+    {
+        $details = [$this->detail(null, 1, 100)];
+
+        $this->postSale($details, 'Cheque')->assertSessionHasErrors('metodo_pago');
+        $this->postSale($details, 'efectivo')->assertSessionHasErrors('metodo_pago');
+
+        $this->assertDatabaseCount('ventas', 0);
+        $this->assertDatabaseCount('caja_movimientos', 0);
+    }
+
+    public function test_venta_efectiva_debe_coincidir_con_fecha_de_caja_y_no_descuenta_stock(): void
+    {
+        $this->addStock(5);
+        $this->business->cajas()->create([
+            'user_apertura_id' => $this->user->id,
+            'fecha' => now()->toDateString(),
+            'saldo_inicial' => 0,
+            'estado' => 'abierta',
+            'abierta_en' => now(),
+        ]);
+
+        foreach ([now()->subDay()->toDateString(), now()->addDay()->toDateString()] as $fecha) {
+            $response = $this->actingAs($this->user)->post(
+                route('gestion.ventas.store', $this->business),
+                [
+                    'fecha' => $fecha,
+                    'metodo_pago' => 'Efectivo',
+                    'operation_token' => (string) Str::uuid(),
+                    'detalles' => [$this->detail($this->product->id, 1, 100)],
+                ]
+            );
+
+            $response->assertSessionHasErrors([
+                'fecha' => 'No puedes registrar una operación en efectivo para una fecha distinta a la caja abierta.',
+            ]);
+        }
+
+        $this->assertDatabaseCount('ventas', 0);
+        $this->assertDatabaseCount('caja_movimientos', 0);
+        $this->assertSame(5.0, $this->product->stockActual());
+    }
+
+    public function test_movimientos_manuales_validan_signo_cero_ajustes_y_stock_disponible(): void
+    {
+        $this->user->negocios()->updateExistingPivot($this->business->id, ['rol' => 'admin']);
+        $this->addStock(5);
+
+        foreach ([['entrada', -1], ['salida', -1], ['ajuste', 0], ['salida', 6]] as [$tipo, $cantidad]) {
+            $this->postStockMovement($tipo, $cantidad)->assertSessionHasErrors('cantidad');
+        }
+
+        $this->postStockMovement('ajuste', 2)->assertRedirect();
+        $this->postStockMovement('ajuste', -1)->assertRedirect();
+
+        $this->assertSame(6.0, $this->product->stockActual());
+    }
+
     private function postSale(
         array $details,
         string $paymentMethod = 'Transferencia'
@@ -439,6 +497,19 @@ class SaleStockTest extends TestCase
             'cantidad' => $quantity,
             'precio_unitario' => $price,
         ];
+    }
+
+    private function postStockMovement(string $type, float $quantity)
+    {
+        return $this->actingAs($this->user)->post(
+            route('gestion.stock.store', $this->business),
+            [
+                'producto_id' => $this->product->id,
+                'tipo' => $type,
+                'cantidad' => $quantity,
+                'concepto' => 'Prueba de seguridad',
+            ]
+        );
     }
 
     private function addStock(

@@ -88,6 +88,12 @@ class IngresoController extends Controller
     {
         $sessionId = session('demo_session_id');
 
+        if (DemoIngreso::where('demo_session_id', $sessionId)->count() >= 50) {
+            return back()->withInput()->withErrors([
+                'demo' => 'La demostración alcanzó el límite permitido. Puedes reiniciar la demo o solicitar una demostración completa.',
+            ]);
+        }
+
         $proveedoresValidos = DemoProveedor::where(
             'demo_session_id',
             $sessionId
@@ -131,6 +137,7 @@ class IngresoController extends Controller
             'pesos' => [
                 'required',
                 'array',
+                'max:100',
             ],
 
             'pesos.*' => [

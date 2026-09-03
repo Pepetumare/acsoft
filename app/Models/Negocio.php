@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Route;
 
 class Negocio extends Model
 {
@@ -90,6 +91,34 @@ class Negocio extends Model
             ->modulosActivos()
             ->where('slug', $slug)
             ->exists();
+    }
+
+    public function landingRouteNameFor(User $user): ?string
+    {
+        $adminOnlyModules = ['productos', 'stock', 'compras'];
+        $isAdmin = $user->canManageBusiness($this);
+
+        $modules = $this->modulosActivos()
+            ->get()
+            ->sortBy(fn (Modulo $module) => match ($module->slug) {
+                'analitica' => -20,
+                'ventas' => -10,
+                default => $module->orden ?? 999,
+            });
+
+        foreach ($modules as $module) {
+            if (! $module->ruta || ! Route::has($module->ruta)) {
+                continue;
+            }
+
+            if (! $isAdmin && in_array($module->slug, $adminOnlyModules, true)) {
+                continue;
+            }
+
+            return $module->ruta;
+        }
+
+        return null;
     }
 
     public function ventas(): HasMany

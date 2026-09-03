@@ -94,6 +94,15 @@ class StockController extends Controller
 
         $cantidad = (float) $validated['cantidad'];
 
+        if (
+            in_array($validated['tipo'], ['entrada', 'salida'], true)
+            && $cantidad <= 0
+        ) {
+            throw ValidationException::withMessages([
+                'cantidad' => 'La cantidad de una entrada o salida debe ser mayor que cero.',
+            ]);
+        }
+
         if (in_array($validated['tipo'], ['entrada', 'salida'])) {
             $cantidad = abs($cantidad);
         }
@@ -107,6 +116,7 @@ class StockController extends Controller
             $producto = $negocio
                 ->productos()
                 ->whereKey($validated['producto_id'])
+                ->where('activo', true)
                 ->lockForUpdate()
                 ->firstOrFail();
 

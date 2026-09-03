@@ -68,7 +68,13 @@
 
                             <input type="date" id="fecha" name="fecha"
                                 value="{{ old('fecha', now()->toDateString()) }}"
-                                class="form-control" required>
+                                class="form-control @error('fecha') is-invalid @enderror" required>
+
+                            @error('fecha')
+                                <div class="invalid-feedback">
+                                    {{ $message }}
+                                </div>
+                            @enderror
 
                         </div>
 
@@ -86,9 +92,9 @@
                                     Sin especificar
                                 </option>
 
-                                @foreach (['Efectivo', 'Débito', 'Crédito', 'Transferencia'] as $metodo)
-                                    <option value="{{ $metodo }}" @selected(old('metodo_pago') === $metodo)>
-                                        {{ $metodo }}
+                                @foreach (\App\Enums\MetodoPago::cases() as $metodo)
+                                    <option value="{{ $metodo->value }}" @selected(old('metodo_pago') === $metodo->value)>
+                                        {{ $metodo->value }}
                                     </option>
                                 @endforeach
 

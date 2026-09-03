@@ -7,7 +7,7 @@
     <div class="mb-4">
         <span class="section-eyebrow">Administración</span>
         <h1 class="mt-2 mb-1">Nuevo usuario</h1>
-        <p class="text-muted mb-0">Crea una cuenta o asocia una cuenta existente al negocio.</p>
+        <p class="text-muted mb-0">Crea una cuenta nueva o envía una invitación a una cuenta existente.</p>
     </div>
     <div class="contact-form-card">
         <form method="POST" action="{{ route('gestion.usuarios.store', $negocio) }}">

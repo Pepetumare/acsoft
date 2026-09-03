@@ -27,6 +27,12 @@ Laravel has the most extensive and thorough [documentation](https://laravel.com/
 
 If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
 
+## Seguridad de la base de datos en tests
+
+Los tests de este proyecto usan exclusivamente SQLite en memoria (`sqlite` / `:memory:`). Nunca deben ejecutarse contra MySQL, MariaDB, la base local `acsoft` ni una base de producción.
+
+El `TestCase` base ignora automáticamente cualquier configuración Laravel cacheada fuera del entorno de tests y comprueba la conexión efectiva antes de que `RefreshDatabase` pueda ejecutar migraciones. La ejecución abortará con un error `SAFETY` si la conexión no es exactamente SQLite `:memory:`.
+
 ## Laravel Sponsors
 
 We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).

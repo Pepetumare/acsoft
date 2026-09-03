@@ -271,7 +271,7 @@ class ProductoController extends Controller
             404
         );
 
-        $producto->delete();
+        $producto->update(['activo' => false]);
 
         return redirect()
             ->route(
@@ -280,7 +280,7 @@ class ProductoController extends Controller
             )
             ->with(
                 'success',
-                'Producto eliminado correctamente.'
+                'Producto desactivado correctamente. Su historial se conserva.'
             );
     }
 }

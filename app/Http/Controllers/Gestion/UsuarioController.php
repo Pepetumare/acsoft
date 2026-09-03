@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\Gestion;
 
 use App\Http\Controllers\Controller;
+use App\Mail\NegocioInvitacionMail;
 use App\Models\Negocio;
+use App\Models\NegocioInvitacion;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -40,7 +44,7 @@ class UsuarioController extends Controller
 
         $email = mb_strtolower(trim($validated['email']));
 
-        DB::transaction(function () use ($negocio, $validated, $email): void {
+        $plainToken = DB::transaction(function () use ($negocio, $validated, $email, $request): ?string {
             $usuario = User::where('email', $email)->lockForUpdate()->first();
 
             if ($usuario && $usuario->is_superadmin) {
@@ -50,9 +54,7 @@ class UsuarioController extends Controller
             }
 
             if ($usuario && $negocio->usuarios()->where('users.id', $usuario->id)->exists()) {
-                throw ValidationException::withMessages([
-                    'email' => 'Este usuario ya existe en este negocio.',
-                ]);
+                return null;
             }
 
             if (!$usuario) {
@@ -62,16 +64,43 @@ class UsuarioController extends Controller
                     'password' => Hash::make($validated['password']),
                     'is_superadmin' => false,
                 ]);
+                $negocio->usuarios()->attach($usuario->id, [
+                    'rol' => $validated['rol'],
+                    'activo' => true,
+                ]);
+
+                return null;
             }
 
-            $negocio->usuarios()->attach($usuario->id, [
-                'rol' => $validated['rol'],
-                'activo' => true,
-            ]);
+            $plainToken = Str::random(64);
+            NegocioInvitacion::query()->updateOrCreate(
+                ['negocio_id' => $negocio->id, 'email' => $email],
+                [
+                    'rol' => $validated['rol'],
+                    'token_hash' => hash('sha256', $plainToken),
+                    'expires_at' => now()->addHours(72),
+                    'accepted_at' => null,
+                    'created_by' => $request->user()->id,
+                ]
+            );
+
+            return $plainToken;
         });
 
-        return redirect()->route('gestion.usuarios.index', $negocio)
-            ->with('success', 'Usuario asociado al negocio correctamente.');
+        $redirect = redirect()->route('gestion.usuarios.index', $negocio)
+            ->with('success', 'El usuario fue creado o invitado correctamente.');
+
+        if ($plainToken) {
+            $invitationUrl = route('business-invitations.show', $plainToken);
+
+            if (app()->environment(['local', 'development'])) {
+                $redirect->with('invitation_url', $invitationUrl);
+            } elseif (config('mail.default') !== 'log') {
+                Mail::to($email)->send(new NegocioInvitacionMail($negocio, $invitationUrl));
+            }
+        }
+
+        return $redirect;
     }
 
     public function edit(Negocio $negocio, User $usuario): View

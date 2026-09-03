@@ -71,7 +71,7 @@ class TenantIsolationTest extends TestCase
     {
         $this->actingAs($this->usuarioA)
             ->get(route('gestion.dashboard', $this->negocioA))
-            ->assertOk();
+            ->assertRedirect(route('gestion.ventas.index', $this->negocioA));
     }
 
     public function test_usuario_a_no_puede_acceder_a_un_negocio_inactivo(): void
@@ -102,7 +102,7 @@ class TenantIsolationTest extends TestCase
     {
         $this->actingAs($this->superadmin)
             ->get(route('gestion.dashboard', $this->negocioB))
-            ->assertOk();
+            ->assertRedirect(route('gestion.ventas.index', $this->negocioB));
 
         foreach ($this->moduleRoutes() as $routeName) {
             $this->actingAs($this->superadmin)

@@ -47,6 +47,12 @@
 
                 @csrf
 
+                <input
+                    type="hidden"
+                    name="operation_token"
+                    value="{{ old('operation_token', (string) \Illuminate\Support\Str::uuid()) }}"
+                >
+
 
                 <div class="row g-3 mb-4">
 
@@ -258,6 +264,7 @@
 
                     <button
                         type="submit"
+                        id="purchase-submit-button"
                         class="btn btn-acsoft-primary"
                     >
                         Registrar compra
@@ -282,6 +289,9 @@
 
 document.addEventListener('DOMContentLoaded', () => {
 
+    const form = document.querySelector('form[action="{{ route('gestion.compras.store', $negocio) }}"]');
+    const submitButton = document.getElementById('purchase-submit-button');
+
     const contenedor =
         document.getElementById('compra-detalles');
 
@@ -292,6 +302,24 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('compra-total');
 
     let indice = 1;
+
+    form?.addEventListener('submit', event => {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            form.reportValidity();
+            submitButton.disabled = false;
+            submitButton.textContent = 'Registrar compra';
+            return;
+        }
+
+        submitButton.disabled = true;
+        submitButton.textContent = 'Guardando...';
+    });
+
+    window.addEventListener('pageshow', () => {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Registrar compra';
+    });
 
 
     const opcionesProductos = `

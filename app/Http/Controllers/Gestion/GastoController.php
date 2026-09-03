@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Gestion;
 
+use App\Enums\MetodoPago;
 use App\Http\Controllers\Controller;
 use App\Models\CajaMovimiento;
 use App\Models\Gasto;
@@ -9,6 +10,8 @@ use App\Models\Negocio;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class GastoController extends Controller
@@ -109,8 +112,7 @@ class GastoController extends Controller
 
             'metodo_pago' => [
                 'nullable',
-                'string',
-                'max:50',
+                Rule::in(MetodoPago::values()),
             ],
 
             'observacion' => [
@@ -144,7 +146,7 @@ class GastoController extends Controller
 
             $caja = null;
 
-            if (($validated['metodo_pago'] ?? null) === 'Efectivo' && $usaCaja) {
+            if (MetodoPago::esEfectivo($validated['metodo_pago'] ?? null) && $usaCaja) {
                 $caja = $negocio
                     ->cajas()
                     ->where('estado', 'abierta')
@@ -152,8 +154,14 @@ class GastoController extends Controller
                     ->lockForUpdate()
                     ->first();
 
-                if (!$caja || !$caja->estaAbierta()) {
+                if (! $caja || ! $caja->estaAbierta()) {
                     return false;
+                }
+
+                if ($caja->fecha->toDateString() !== $validated['fecha']) {
+                    throw ValidationException::withMessages([
+                        'fecha' => 'No puedes registrar una operación en efectivo para una fecha distinta a la caja abierta.',
+                    ]);
                 }
             }
 
@@ -184,7 +192,7 @@ class GastoController extends Controller
             return true;
         });
 
-        if (!$creado) {
+        if (! $creado) {
             return back()
                 ->withInput()
                 ->with(

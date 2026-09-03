@@ -42,7 +42,7 @@ class LoginController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->to(
+        return redirect()->intended(
             $request->user()->dashboardUrl()
         );
     }

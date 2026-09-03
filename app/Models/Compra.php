@@ -15,6 +15,7 @@ class Compra extends Model
         'proveedor',
         'total',
         'observacion',
+        'operation_token',
     ];
 
     protected $casts = [

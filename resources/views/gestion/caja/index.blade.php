@@ -239,6 +239,7 @@
 
 
                     <form
+                        id="manual-cash-movement-form"
                         action="{{ route(
                             'gestion.caja.movimientos.store',
                             $negocio
@@ -247,6 +248,12 @@
                     >
 
                         @csrf
+
+                        <input
+                            type="hidden"
+                            name="operation_token"
+                            value="{{ old('operation_token', (string) \Illuminate\Support\Str::uuid()) }}"
+                        >
 
 
                         {{-- Tipo --}}
@@ -386,6 +393,7 @@
 
                         <button
                             type="submit"
+                            id="manual-cash-movement-submit"
                             class="btn btn-acsoft-primary"
                         >
                             Registrar movimiento
@@ -635,3 +643,34 @@
 </div>
 
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('manual-cash-movement-form');
+    const button = document.getElementById('manual-cash-movement-submit');
+
+    if (!form || !button) return;
+
+    const originalText = button.textContent;
+
+    form.addEventListener('submit', event => {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            form.reportValidity();
+            button.disabled = false;
+            button.textContent = originalText;
+            return;
+        }
+
+        button.disabled = true;
+        button.textContent = 'Guardando...';
+    });
+
+    window.addEventListener('pageshow', () => {
+        button.disabled = false;
+        button.textContent = originalText;
+    });
+});
+</script>
+@endpush

@@ -16,6 +16,7 @@ class CajaMovimiento extends Model
         'observacion',
         'origen_tipo',
         'origen_id',
+        'operation_token',
     ];
 
     protected $casts = [

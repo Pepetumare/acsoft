@@ -228,21 +228,11 @@
                                 Sin especificar
                             </option>
 
-                            <option value="Efectivo" @selected(old('metodo_pago') === 'Efectivo')>
-                                Efectivo
-                            </option>
-
-                            <option value="Débito" @selected(old('metodo_pago') === 'Débito')>
-                                Débito
-                            </option>
-
-                            <option value="Crédito" @selected(old('metodo_pago') === 'Crédito')>
-                                Crédito
-                            </option>
-
-                            <option value="Transferencia" @selected(old('metodo_pago') === 'Transferencia')>
-                                Transferencia
-                            </option>
+                            @foreach (\App\Enums\MetodoPago::cases() as $metodo)
+                                <option value="{{ $metodo->value }}" @selected(old('metodo_pago') === $metodo->value)>
+                                    {{ $metodo->value }}
+                                </option>
+                            @endforeach
 
                         </select>
 

@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BusinessSelectorController;
+use App\Http\Controllers\NegocioInvitacionController;
 
 use App\Http\Controllers\Demo\DemoController;
 use App\Http\Controllers\Demo\ProveedorController;
@@ -78,11 +79,13 @@ Route::prefix('demo')
             ->name('index');
 
         Route::resource('proveedores', ProveedorController::class)
+            ->middlewareFor(['store', 'update', 'destroy'], 'throttle:demo-write')
             ->parameters([
                 'proveedores' => 'proveedor',
             ]);
 
         Route::resource('productos', ProductoController::class)
+            ->middlewareFor(['store', 'update', 'destroy'], 'throttle:demo-write')
             ->parameters([
                 'productos' => 'producto',
             ]);
@@ -94,6 +97,7 @@ Route::prefix('demo')
                 'store',
                 'destroy',
             ])
+            ->middlewareFor(['store', 'destroy'], 'throttle:demo-write')
             ->parameters([
                 'ingresos' => 'ingreso',
             ]);
@@ -120,6 +124,13 @@ Route::middleware('guest')->group(function () {
 Route::post('/logout', [LoginController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/invitaciones/negocio/{token}', [NegocioInvitacionController::class, 'show'])
+        ->name('business-invitations.show');
+    Route::post('/invitaciones/negocio/{token}', [NegocioInvitacionController::class, 'accept'])
+        ->name('business-invitations.accept');
+});
 
 
 /*
@@ -178,10 +189,14 @@ Route::middleware('auth')
 
         Route::get(
             '/gestion/{negocio}',
-            [GestionDashboardController::class, 'index']
+            [GestionDashboardController::class, 'landing']
         )
             ->middleware('tenant.business')
             ->name('gestion.dashboard');
+
+        Route::get('/gestion/{negocio}/analitica', [GestionDashboardController::class, 'index'])
+            ->middleware(['tenant.business', 'module:analitica'])
+            ->name('gestion.analitica');
 
         Route::prefix('gestion/{negocio}/personalizacion')
             ->name('gestion.personalizacion.')

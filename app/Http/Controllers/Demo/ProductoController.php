@@ -42,6 +42,12 @@ class ProductoController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        if (DemoProducto::where('demo_session_id', session('demo_session_id'))->count() >= 40) {
+            return back()->withInput()->withErrors([
+                'demo' => 'La demostración alcanzó el límite permitido. Puedes reiniciar la demo o solicitar una demostración completa.',
+            ]);
+        }
+
         $proveedoresValidos = $this
             ->proveedoresDeSesion()
             ->pluck('id')

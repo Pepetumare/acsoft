@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Cliente;
+use App\Models\Compra;
 use App\Models\Modulo;
 use App\Models\Negocio;
 use App\Models\Producto;
@@ -10,6 +11,7 @@ use App\Models\StockMovimiento;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -211,6 +213,65 @@ class PurchaseReportTest extends TestCase
         $this->assertCount(1, $productQueries);
     }
 
+    public function test_mismo_token_no_duplica_compra_detalles_ni_stock(): void
+    {
+        $token = (string) Str::uuid();
+        $details = [$this->detail($this->product->id, 2, 100)];
+
+        $this->postPurchase($details, $token)->assertRedirect();
+        $this->postPurchase($details, $token)->assertRedirect();
+
+        $this->assertDatabaseCount('compras', 1);
+        $this->assertDatabaseCount('compra_detalles', 1);
+        $this->assertSame(1, StockMovimiento::where('origen_tipo', 'compra')->count());
+    }
+
+    public function test_nuevo_token_permite_compra_legitima_con_los_mismos_valores(): void
+    {
+        $details = [$this->detail($this->product->id, 2, 100)];
+
+        $this->postPurchase($details, (string) Str::uuid());
+        $this->postPurchase($details, (string) Str::uuid());
+
+        $this->assertDatabaseCount('compras', 2);
+        $this->assertDatabaseCount('stock_movimientos', 2);
+    }
+
+    public function test_compra_no_consumida_puede_eliminarse_sin_huerfanos(): void
+    {
+        $this->postPurchase([$this->detail($this->product->id, 2, 100)]);
+        $compra = Compra::firstOrFail();
+
+        $this->actingAs($this->admin)->delete(
+            route('gestion.compras.destroy', [$this->business, $compra])
+        )->assertRedirect(route('gestion.compras.index', $this->business));
+
+        $this->assertDatabaseCount('compras', 0);
+        $this->assertDatabaseCount('compra_detalles', 0);
+        $this->assertDatabaseCount('stock_movimientos', 0);
+    }
+
+    public function test_compra_parcialmente_consumida_no_puede_eliminarse(): void
+    {
+        $this->assertCompraConsumidaNoSeElimina(1);
+    }
+
+    public function test_compra_totalmente_consumida_no_puede_eliminarse(): void
+    {
+        $this->assertCompraConsumidaNoSeElimina(2);
+    }
+
+    public function test_formulario_de_compra_incluye_token_y_bloquea_doble_envio(): void
+    {
+        $this->actingAs($this->admin)
+            ->get(route('gestion.compras.create', $this->business))
+            ->assertOk()
+            ->assertSee('name="operation_token"', false)
+            ->assertSee('id="purchase-submit-button"', false)
+            ->assertSee('submitButton.disabled = true', false)
+            ->assertSee('Guardando...', false);
+    }
+
     public function test_reporte_rechaza_fecha_invalida_sin_error_500(): void
     {
         $response = $this->actingAs($this->admin)
@@ -352,16 +413,50 @@ class PurchaseReportTest extends TestCase
         )->assertOk();
     }
 
-    private function postPurchase(array $details)
+    private function postPurchase(array $details, ?string $operationToken = null)
     {
         return $this->actingAs($this->admin)->post(
             route('gestion.compras.store', $this->business),
             [
                 'fecha' => now()->toDateString(),
                 'proveedor' => 'Proveedor de prueba',
+                'operation_token' => $operationToken ?? (string) Str::uuid(),
                 'detalles' => $details,
             ]
         );
+    }
+
+    private function assertCompraConsumidaNoSeElimina(float $consumed): void
+    {
+        $this->postPurchase([$this->detail($this->product->id, 2, 100)]);
+        $compra = Compra::firstOrFail();
+
+        $this->business->movimientosStock()->create([
+            'producto_id' => $this->product->id,
+            'user_id' => $this->admin->id,
+            'tipo' => 'salida',
+            'cantidad' => $consumed,
+            'concepto' => 'Consumo posterior',
+            'origen_tipo' => 'venta',
+            'origen_id' => 999,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->from(route('gestion.compras.index', $this->business))
+            ->delete(route('gestion.compras.destroy', [$this->business, $compra]))
+            ->assertSessionHas(
+                'error',
+                'No se puede eliminar esta compra porque parte de su stock ya fue utilizado.'
+            );
+
+        $this->assertDatabaseHas('compras', ['id' => $compra->id]);
+        $this->assertDatabaseHas('compra_detalles', ['compra_id' => $compra->id]);
+        $this->assertDatabaseHas('stock_movimientos', [
+            'origen_tipo' => 'compra',
+            'origen_id' => $compra->id,
+            'cantidad' => 2,
+        ]);
+        $this->assertSame(2.0 - $consumed, $this->product->stockActual());
     }
 
     private function detail(int $productId, float $quantity, float $cost): array
